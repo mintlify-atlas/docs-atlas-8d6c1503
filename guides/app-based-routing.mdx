@@ -1,0 +1,89 @@
+---
+title: "Route traffic by app with per-app VPN rules"
+description: "Control which Android apps use the VPN tunnel by creating an allowlist or denylist. Learn how to combine app-based rules with routing settings correctly."
+---
+
+Open SSTP Client can restrict VPN tunnel access to a specific set of Android apps rather than routing all device traffic through it. This is useful when you need only certain apps — a mail client, a remote desktop tool, or an internal company app — to use the VPN, while leaving general browsing on the regular network.
+
+## How app-based routing works
+
+When the **Enable App-Based Rule** option is turned on, you choose between two operating modes:
+
+- **Allowed Apps** — only the apps you select can send and receive traffic through the VPN tunnel. All other apps use the regular network.
+- **Disallowed Apps** — all apps use the VPN tunnel except the ones you select.
+
+<Warning>
+  Even when an app is on the allowed list, it cannot use the VPN tunnel unless a matching route exists in the routing table. When using app-based rules, enable **Add Default Route** in the routing settings. Without it, allowed apps may have no routable path through the tunnel. See [Routing configuration](/configuration/routing) for details.
+</Warning>
+
+## Setting up app-based routing
+
+<Steps>
+  <Step title="Go to the Setting tab">
+    Open the app and switch to the **Setting** tab.
+  </Step>
+  <Step title="Enable App-Based Rule">
+    Find and enable the **Enable App-Based Rule** toggle. Additional options appear below it once the feature is on.
+  </Step>
+  <Step title="Choose the list type">
+    Select either **Allowed Apps** or **Disallowed Apps** depending on whether you want to whitelist or blacklist specific apps.
+  </Step>
+  <Step title="Open the app selector">
+    Tap **Select Allowed Apps** (or **Select Disallowed Apps**, depending on your choice in the previous step).
+  </Step>
+  <Step title="Optionally show background apps">
+    Toggle **Show Background Apps** if you need to include apps that have no launcher icon — system services, background sync agents, and similar components. By default only apps with a launcher activity are listed.
+  </Step>
+  <Step title="Select apps">
+    Tap each app you want to add to the list. Confirm your selection to save.
+  </Step>
+</Steps>
+
+## Allowed Apps vs. Disallowed Apps
+
+<AccordionGroup>
+  <Accordion title="Allowed Apps mode">
+    Only the apps in your list can route traffic through the VPN. This is the right choice when you have a small number of apps that need VPN access and want everything else to stay on the regular network.
+
+    Example use case: you want only your company's internal app and SSH client to use the VPN, while streaming and browsing remain on your local connection.
+  </Accordion>
+  <Accordion title="Disallowed Apps mode">
+    All apps use the VPN except those in your list. This is a good fit when almost all traffic should go through the tunnel but a few apps — for example, a video streaming service with geo-restrictions — should stay on the regular network.
+
+    Example use case: you want full-device VPN coverage but exclude a bandwidth-heavy media app to avoid routing it unnecessarily through the tunnel.
+  </Accordion>
+</AccordionGroup>
+
+## Background apps
+
+When **Show Background Apps** is disabled (the default), the app list only includes apps that have a launcher activity — in other words, apps that appear in your device's app drawer. Background apps are services, sync adapters, and other components that have no visible launch icon.
+
+Enable **Show Background Apps** when you need to control VPN access for:
+
+- System-level services
+- Background sync or push notification agents
+- Apps installed as device management components
+
+<Note>
+  The app internally deduplicates package names when building the list. This is a known workaround for apps like Google Quick Search Box, which can appear multiple times in the package manager's results. You will see each app listed only once regardless of how many activity entries it has.
+</Note>
+
+## Route table requirement
+
+App-based routing controls which apps are *permitted* to use the tunnel, but it does not automatically create the routes those apps need. The VPN tunnel only carries traffic for destinations that appear in the routing table.
+
+If no default route is added and no custom routes match an app's destination, that app's traffic will be dropped even if it is on the allowed list.
+
+<CardGroup cols={2}>
+  <Card title="Add Default Route" icon="route" href="/configuration/routing">
+    Enable this in routing settings to send all traffic through the tunnel by default. Recommended when using app-based rules.
+  </Card>
+  <Card title="Custom Routes" icon="list" href="/configuration/routing">
+    Add specific CIDR ranges if you only want to route traffic to particular subnets through the tunnel.
+  </Card>
+</CardGroup>
+
+## Related pages
+
+- [Routing configuration](/configuration/routing) — default route, private address routing, and custom route settings
+- [Save and load profiles](/guides/profiles) — save your app list as part of a named profile

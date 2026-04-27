@@ -1,0 +1,125 @@
+---
+title: 'Connect through an HTTP proxy server'
+description: 'Route your SSTP connection through an HTTP CONNECT proxy with optional Basic auth. Covers hostname, port, credentials, and tunnel negotiation.'
+---
+
+In environments where direct outbound TCP connections are blocked — such as corporate networks, strict firewalls, or captive portals — you can route the SSTP connection through an HTTP proxy that supports the `CONNECT` method. When a proxy is configured, Open SSTP Client opens the TCP socket to the proxy host instead of directly to the VPN server, issues an HTTP `CONNECT` request to ask the proxy to establish a tunnel, and then performs the normal TLS handshake through that tunnel. All SSL and PPP settings work exactly the same way once the proxy tunnel is up.
+
+<Info>
+  Only HTTP proxies that support the `CONNECT` method are compatible. SOCKS proxies and HTTP proxies that only support `GET`/`POST` forwarding are not supported.
+</Info>
+
+## Enabling the proxy
+
+<AccordionGroup>
+  <Accordion title="Use HTTP Proxy (PROXY_DO_USE_PROXY)">
+    **Where:** Setting tab → Use HTTP Proxy
+
+    **Default:** `false` (disabled)
+
+    Master switch for proxy support. When enabled, the app connects the underlying TCP socket to the proxy host and port rather than directly to the VPN server. The proxy hostname and port fields become required. When disabled, all other proxy settings are ignored.
+  </Accordion>
+</AccordionGroup>
+
+## Proxy server address
+
+<AccordionGroup>
+  <Accordion title="Proxy Hostname (PROXY_HOSTNAME)">
+    **Where:** Setting tab → Proxy Hostname
+
+    **Default:** *(empty — must be set when proxy is enabled)*
+
+    The hostname or IP address of the HTTP proxy server. Like the VPN hostname, this must not include a port number — configure the port separately in **Proxy Port**.
+
+    **Valid values:**
+    - Domain name: `proxy.corp.example.com`
+    - IPv4 address: `192.168.1.100`
+
+    When **Use HTTP Proxy** is enabled, the app validates that this field is non-empty before attempting to connect. If it is blank, connection is refused with an `INVALID SETTING` error.
+  </Accordion>
+
+  <Accordion title="Proxy Port (PROXY_PORT)">
+    **Where:** Setting tab → Proxy Port
+
+    **Default:** `8080`
+
+    **Valid range:** `0` – `65535`
+
+    The TCP port on which the proxy server listens. Common values are `8080` (the default), `3128` (Squid), and `80`. Change this to match your proxy server's configuration.
+  </Accordion>
+</AccordionGroup>
+
+## Proxy authentication
+
+HTTP Basic authentication is supported for proxies that require credentials. Both fields are optional — if either is non-empty, the `Proxy-Authorization` header is included in the `CONNECT` request.
+
+<AccordionGroup>
+  <Accordion title="Proxy Username (PROXY_USERNAME)">
+    **Where:** Setting tab → Proxy Username
+
+    **Default:** *(empty)*
+
+    The username for HTTP Basic proxy authentication. If both username and password are empty, no `Proxy-Authorization` header is sent and the proxy is assumed to allow unauthenticated `CONNECT` requests.
+  </Accordion>
+
+  <Accordion title="Proxy Password (PROXY_PASSWORD)">
+    **Where:** Setting tab → Proxy Password
+
+    **Default:** *(empty)*
+
+    The password for HTTP Basic proxy authentication. Combined with the username as `username:password`, Base64-encoded, and sent in the `Proxy-Authorization: Basic <token>` header.
+
+    <Warning>
+      HTTP Basic authentication encodes credentials in Base64, which is not encryption. The credentials are protected by the TCP connection to the proxy — but that connection is plain TCP, not TLS. Use this option only on trusted networks or when the proxy itself is on a secured segment.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## How the proxy tunnel works
+
+When a proxy is configured, `SSLTerminal` establishes the connection in two phases before any TLS negotiation begins:
+
+<Steps>
+  <Step title="TCP connection to the proxy">
+    A plain TCP socket is opened to `PROXY_HOSTNAME:PROXY_PORT` instead of to the VPN server directly.
+  </Step>
+  <Step title="HTTP CONNECT request">
+    The app sends an HTTP/1.1 `CONNECT` request over that socket, targeting the VPN server:
+
+    ```http
+    CONNECT vpn.example.com:443 HTTP/1.1
+    Host: vpn.example.com:443
+    SSTPVERSION: 1.0
+    Proxy-Authorization: Basic dXNlcjpwYXNz
+    ```
+
+    The `SSTPVERSION: 1.0` header is always included to identify the client as an SSTP client. The `Proxy-Authorization` header is included only when credentials are provided.
+  </Step>
+  <Step title="Proxy response validation">
+    The app reads the proxy's HTTP response:
+
+    - **HTTP 200** — the proxy has established the tunnel; proceed with TLS handshake.
+    - **HTTP 403** — the proxy rejected the credentials; connection is aborted with an authentication error.
+    - **Any other status** — treated as an unexpected error; connection is aborted.
+  </Step>
+  <Step title="TLS handshake through the tunnel">
+    With the proxy tunnel established, the standard TLS handshake proceeds as if the socket were connected directly to the VPN server. All [SSL security settings](/configuration/ssl-security) apply normally from this point.
+  </Step>
+</Steps>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Connection settings" icon="plug" href="/configuration/connection">
+    Configure the VPN server hostname, credentials, and SSL port.
+  </Card>
+  <Card title="SSL and TLS security" icon="lock" href="/configuration/ssl-security">
+    Control TLS version, certificate verification, and cipher suites.
+  </Card>
+  <Card title="Troubleshooting" icon="triangle-alert" href="/reference/troubleshooting">
+    Diagnose proxy connection failures and authentication errors.
+  </Card>
+  <Card title="Settings reference" icon="list" href="/reference/settings">
+    Complete list of all preference keys and default values.
+  </Card>
+</CardGroup>

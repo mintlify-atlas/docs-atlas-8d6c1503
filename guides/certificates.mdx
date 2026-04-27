@@ -1,0 +1,107 @@
+---
+title: "Use custom trusted certificates for SSL"
+description: "Configure Open SSTP Client to use only certificates from a specific directory, and learn how to save and install an untrusted server certificate."
+---
+
+By default, Open SSTP Client validates the VPN server's TLS certificate against Android's built-in system trust store. This works for servers with certificates signed by a public certificate authority, but fails for servers that use self-signed certificates. This guide explains how to point the app at a custom certificate directory and how to retrieve and install a certificate from an untrusted server.
+
+## When you need a custom certificate
+
+There are two main scenarios where the default trust store is not sufficient:
+
+<CardGroup cols={2}>
+  <Card title="Self-signed server" icon="lock">
+    The VPN server presents a certificate it signed itself. No public CA vouches for it, so Android rejects it by default.
+  </Card>
+  <Card title="Private CA" icon="building">
+    Your organization operates its own certificate authority. Devices outside your corporate trust store will not recognize certificates it issues.
+  </Card>
+</CardGroup>
+
+## How the trusted certificate directory works
+
+When you specify a trusted certificate directory, the app **replaces** the system trust store entirely for that connection. It reads every file in the chosen directory, attempts to parse each one as an X.509 certificate, and builds a private trust store from the results. The system store is not consulted at all during that session.
+
+<Warning>
+  Because the system trust store is bypassed when a directory is specified, only the certificates you place in that directory will be trusted. If the server's certificate chain references intermediate CAs, you must include those intermediate certificates in the directory as well.
+</Warning>
+
+## Setting up a trusted certificate directory
+
+<Steps>
+  <Step title="Prepare a directory on your device">
+    Create a folder on device storage (or a location accessible via the Android storage picker) and copy your `.crt` certificate files into it.
+  </Step>
+  <Step title="Open the Setting tab">
+    Switch to the **Setting** tab in the app.
+  </Step>
+  <Step title="Tap Specify Trusted Certificates">
+    Find the **Specify Trusted Certificates** option in the SSL section and tap it to open the Android directory picker.
+  </Step>
+  <Step title="Select the directory">
+    Navigate to and select the folder containing your certificate files. The app stores a persistent URI grant to that directory.
+  </Step>
+  <Step title="Verify the setting is active">
+    Once a directory is selected, the app will use only those certificates on the next connection attempt. To revert to the system trust store, clear the directory selection.
+  </Step>
+</Steps>
+
+<Note>
+  This setting was labeled **Add Trusted Certificates** in v1.7.0 and older versions of the app. The behavior is unchanged; only the label differs.
+</Note>
+
+## Saving an untrusted server certificate
+
+If you try to connect to a server whose certificate is not trusted, the SSL handshake fails and the app posts a notification. You can use this notification to retrieve the server's certificate directly.
+
+<Steps>
+  <Step title="Attempt a connection">
+    Try connecting to the server. The connection will fail if the certificate is not trusted.
+  </Step>
+  <Step title="Check the notification">
+    A notification appears with the title **"You can download the untrusted server certificate"**. This notification contains a tap action to save the certificate file.
+  </Step>
+  <Step title="Tap the notification">
+    Tapping it opens a save dialog. The suggested filename is derived from the certificate's subject name (e.g., `CN=vpn.example.com.crt`).
+  </Step>
+  <Step title="Save the certificate file">
+    Choose a save location. The file is written in DER-encoded X.509 format with a `.crt` extension.
+  </Step>
+  <Step title="Install or trust the certificate">
+    You now have two options — use both together for the most reliable result:
+    - **Install system-wide**: go to Android Settings → Security → Install a certificate, and select the saved file.
+    - **Add to trusted directory**: copy the `.crt` file into the directory you configured in **Specify Trusted Certificates**.
+  </Step>
+</Steps>
+
+<Warning>
+  The notification also displays the text: *"WARNING: untrusted certificates could have your device vulnerable."* Only save and install certificates from servers you own or explicitly trust. Installing a certificate from an unknown source allows that party to intercept your encrypted traffic.
+</Warning>
+
+## Disabling hostname verification for self-signed certificates
+
+Even after installing a self-signed certificate, the app will still verify that the certificate's subject name matches the server's hostname. For self-signed certificates, this check often fails because the subject name does not match the hostname you entered.
+
+To connect successfully to a self-signed cert server, you must also disable **Verify Hostname** in the SSL settings.
+
+<Warning>
+  Disabling hostname verification removes a key protection against man-in-the-middle attacks. An attacker on the same network could present any certificate and the app would accept it. Only disable this option when connecting to a server you control over a network you trust.
+</Warning>
+
+The complete setup for a self-signed certificate server is:
+
+1. Save the server's certificate using the notification method above.
+2. Place the `.crt` file in your trusted certificate directory (or install it system-wide).
+3. Enable **Specify Trusted Certificates** and point it at the directory.
+4. Disable **Verify Hostname** in SSL settings.
+5. Connect.
+
+## Certificate parsing errors
+
+If a file in the trusted directory cannot be parsed as a valid X.509 certificate, the connection attempt fails immediately with the error `CERT: ERR_PARSING_FAILED`. The error log includes the filename and the full stack trace from the parser. Remove or fix the offending file and retry.
+
+## Related pages
+
+- [SSL & security settings](/configuration/ssl-security) — full reference for SSL version, cipher suites, SNI, and verification options
+- [Enable logging and debug VPN connections](/guides/logging-debugging) — capture connection errors including certificate failures
+- [Troubleshooting](/reference/troubleshooting) — common certificate-related error codes

@@ -1,0 +1,150 @@
+---
+title: 'SSL/TLS settings: certificates, ciphers, and SNI'
+description: 'Control TLS protocol version, hostname verification, custom cipher suites, SNI overrides, and trusted certificate directories for your SSTP connection.'
+---
+
+Open SSTP Client wraps the SSTP tunnel inside a standard TLS connection before any PPP data is exchanged. The SSL settings in the **Setting** tab let you control every aspect of that TLS handshake: which protocol version is used, whether the server's certificate is verified, which cipher suites are offered, and whether a custom SNI hostname is sent. Most deployments work fine with the defaults, but the options below become important when you are troubleshooting certificate errors, connecting through a CDN or reverse proxy, or capturing traffic for analysis.
+
+<Info>
+  These settings apply to the SSL layer only. PPP-level authentication settings (username, password, auth protocol) are configured separately under [PPP network protocol](/configuration/ppp-network).
+</Info>
+
+## Protocol version
+
+<AccordionGroup>
+  <Accordion title="SSL Version (SSL_VERSION)">
+    **Where:** Setting tab → SSL Version
+
+    **Default:** `DEFAULT`
+
+    **Options:** `DEFAULT`, `TLSv1.2`, `TLSv1.3`
+
+    Controls which TLS protocol version the SSL engine is allowed to use.
+
+    | Value | Behavior |
+    |-------|----------|
+    | `DEFAULT` | Uses Android's system-wide TLS default. Lets the OS decide the highest mutually supported version. |
+    | `TLSv1.2` | Restricts the connection to TLS 1.2 only. Useful when the server does not support TLS 1.3, or when you need to capture and decrypt traffic with WireShark (TLS 1.2 supports RSA key exchange cipher suites that WireShark can decrypt). |
+    | `TLSv1.3` | Restricts the connection to TLS 1.3 only. |
+
+    <Warning>
+      When **Specify Trusted Certificates** is enabled, you must choose either `TLSv1.2` or `TLSv1.3` explicitly. The `DEFAULT` value is not compatible with a custom certificate store and the app will refuse to connect with that combination.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Certificate verification
+
+<AccordionGroup>
+  <Accordion title="Verify Hostname (SSL_DO_VERIFY)">
+    **Where:** Setting tab → Verify Hostname
+
+    **Default:** `true` (enabled)
+
+    When enabled, the app runs Android's default `HostnameVerifier` against the server's TLS certificate after the handshake completes. The verified hostname is taken from the **Host** field. If verification fails, the connection is dropped immediately.
+
+    <Warning>
+      Disabling hostname verification means any certificate — including one issued for a completely different domain — will be accepted. This exposes the connection to man-in-the-middle attacks. Only disable this in isolated test environments where you control the network path.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Specify Trusted Certificates (SSL_DO_SPECIFY_CERT)">
+    **Where:** Setting tab → Specify Trusted Certificates
+
+    **Default:** `false` (disabled)
+
+    When enabled, the app builds a custom `TrustManager` from the certificates found in the selected directory, **replacing** the system certificate store entirely. Only certificates in that directory will be trusted — no system CA roots are consulted.
+
+    This is useful when your SSTP server uses a self-signed or private-CA certificate that is not in the Android trust store. It is also the option to enable if you need to pin trust to a specific certificate.
+
+    When this option is enabled you must also:
+    1. Set **SSL Version** to `TLSv1.2` or `TLSv1.3` (not `DEFAULT`).
+    2. Select a certificate directory via **Certificate Directory**.
+
+    See [Working with custom certificates](/guides/certificates) for a step-by-step guide on obtaining and installing the server certificate.
+  </Accordion>
+
+  <Accordion title="Certificate Directory (SSL_CERT_DIR)">
+    **Where:** Setting tab → Certificate Directory
+
+    **Default:** *(none)*
+
+    The Android content-URI of a directory containing one or more X.509 certificate files (`.crt`, `.pem`, or `.cer`). Every file in the directory is parsed as an X.509 certificate and loaded into the custom trust store. Subdirectories are ignored.
+
+    If any file in the directory fails to parse, the connection attempt is aborted and an error is logged. The app also fires a notification if an untrusted server certificate is encountered, with a tap-to-save action so you can download the certificate directly.
+
+    This field is only consulted when **Specify Trusted Certificates** is `true`.
+  </Accordion>
+</AccordionGroup>
+
+## Cipher suites
+
+<AccordionGroup>
+  <Accordion title="Select Cipher Suites (SSL_DO_SELECT_SUITES)">
+    **Where:** Setting tab → Select Cipher Suites
+
+    **Default:** `false` (disabled)
+
+    When disabled, the SSL engine uses Android's full default cipher suite list. When enabled, only the suites you explicitly select via **Cipher Suites** are offered during the TLS handshake. The app filters the engine's `supportedCipherSuites` list to those you have chosen, preserving the system's preference order among the selected suites.
+
+    If this option is enabled but no suites are selected, the app will refuse to connect.
+  </Accordion>
+
+  <Accordion title="Cipher Suites (SSL_SUITES)">
+    **Where:** Setting tab → Cipher Suites (multi-select list)
+
+    **Default:** *(empty — system default list is used)*
+
+    The set of TLS cipher suite names to enable. Entries are matched against the engine's `supportedCipherSuites` list; any suite you select that the device does not support is silently ignored.
+
+    <Tip>
+      For packet capture and analysis with WireShark, select one of these two suites and set **SSL Version** to `TLSv1.2`:
+
+      - `TLS_RSA_WITH_AES_128_CBC_SHA`
+      - `TLS_RSA_WITH_AES_256_CBC_SHA`
+
+      These suites use RSA key exchange, which allows WireShark to decrypt the session with the server's private key. TLS 1.3 suites use ephemeral key exchange and cannot be decrypted this way.
+    </Tip>
+  </Accordion>
+</AccordionGroup>
+
+## Server Name Indication (SNI)
+
+<AccordionGroup>
+  <Accordion title="Use Custom SNI (SSL_DO_USE_CUSTOM_SNI)">
+    **Where:** Setting tab → Use Custom SNI
+
+    **Default:** `false` (disabled)
+
+    **Requires:** Android 7.0 (API level 24) or higher
+
+    By default, the TLS SNI extension sends the value from the **Host** field. Enable this option to override the SNI hostname independently of the connection hostname. This is useful when the VPN server sits behind a reverse proxy or CDN that routes requests by SNI, and the SNI value must differ from the IP address or internal hostname you are connecting to.
+
+    If this option is enabled but the custom SNI field is left blank, the app will refuse to connect. On devices running Android 6 or earlier, enabling this option causes a validation error regardless of the SNI value.
+  </Accordion>
+
+  <Accordion title="Custom SNI Hostname (SSL_CUSTOM_SNI)">
+    **Where:** Setting tab → Custom SNI Hostname
+
+    **Default:** *(empty)*
+
+    The hostname string sent in the TLS SNI extension. Must be a valid DNS hostname. This value is only used when **Use Custom SNI** is enabled; otherwise the **Host** field value is used automatically.
+  </Accordion>
+</AccordionGroup>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Working with custom certificates" icon="certificate" href="/guides/certificates">
+    Step-by-step instructions for obtaining, converting, and installing server certificates.
+  </Card>
+  <Card title="Connection settings" icon="plug" href="/configuration/connection">
+    Configure the hostname, credentials, and SSL port.
+  </Card>
+  <Card title="Logging and debugging" icon="bug" href="/guides/logging-debugging">
+    Enable log saving and use cipher suite selection for traffic capture.
+  </Card>
+  <Card title="Troubleshooting" icon="triangle-alert" href="/reference/troubleshooting">
+    Common SSL and certificate error messages and how to resolve them.
+  </Card>
+</CardGroup>

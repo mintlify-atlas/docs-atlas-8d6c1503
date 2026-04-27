@@ -1,0 +1,82 @@
+{
+  "projectType": "saas",
+  "projectName": "Open SSTP Client",
+  "projectDescription": "An open-source Secure Socket Tunneling Protocol (MS-SSTP) VPN client for Android, supporting VPN Azure Cloud and SoftEther VPN Server.",
+  "theme": "almond",
+  "primaryColor": "#1565C0",
+  "lightColor": "#42A5F5",
+  "darkColor": "#0D47A1",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/connection",
+              "configuration/ssl-security",
+              "configuration/ppp-network",
+              "configuration/routing",
+              "configuration/proxy"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/profiles",
+              "guides/app-based-routing",
+              "guides/certificates",
+              "guides/reconnection",
+              "guides/logging-debugging"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/settings",
+              "reference/authentication",
+              "reference/notifications",
+              "reference/troubleshooting",
+              "reference/contributing"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "MS-SSTP VPN protocol implementation for Android",
+    "SSL/TLS encrypted tunnel with configurable cipher suites",
+    "PAP and MS-CHAPv2 authentication support",
+    "IPv4 and IPv6 network protocol support",
+    "App-based routing rules (allowlist/denylist)",
+    "Custom DNS server configuration",
+    "HTTP proxy support with authentication",
+    "VPN connection profiles (save/load)",
+    "Quick Settings tile integration",
+    "Auto-reconnection with configurable retry logic",
+    "Connection logging to file",
+    "Custom trusted certificate support"
+  ],
+  "publicApiSurface": [
+    "ACTION_VPN_CONNECT intent action",
+    "ACTION_VPN_DISCONNECT intent action",
+    "SstpVpnService (android.net.VpnService)",
+    "SstpTileService (QuickSettings tile)",
+    "OscPrefKey preference keys enum",
+    "Profile export/import format",
+    "SSL cipher suite selection",
+    "Custom SNI hostname configuration",
+    "App-based routing (allowed/disallowed lists)",
+    "Custom route CIDR entries"
+  ]
+}

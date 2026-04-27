@@ -1,0 +1,115 @@
+---
+title: 'System notifications from Open SSTP Client'
+description: 'Understand each notification Open SSTP Client shows during VPN connection, errors, reconnection attempts, and certificate events on Android.'
+---
+
+Open SSTP Client uses Android's notification system to communicate VPN state changes, errors, and actionable events while the app is running in the background. There are four notification channels, each serving a distinct purpose. Understanding what each notification means helps you diagnose issues quickly without needing to open the app.
+
+## Android 13+ permission
+
+On Android 13 (API 33) and later, the `POST_NOTIFICATIONS` runtime permission must be granted before any notifications will appear. If you do not see notifications after connecting, check that this permission has been granted to Open SSTP Client in your device's app settings.
+
+<Info>
+  The app requests the `POST_NOTIFICATIONS` permission at runtime. If you denied it previously, go to **Settings → Apps → Open SSTP Client → Permissions → Notifications** to re-enable it.
+</Info>
+
+## Notification channels
+
+<AccordionGroup>
+  <Accordion title="DISCONNECT — ongoing connection notification (ID: 3)">
+    This is a persistent foreground notification that appears as soon as a VPN connection is started and remains visible for the entire duration of the session.
+
+    **What it shows:** A VPN lock icon with a **DISCONNECT** action button.
+
+    **What it means:** The VPN service is active. Android requires a foreground notification to keep the VPN service running when the app is not in the foreground.
+
+    **Action:** Tap the **DISCONNECT** button to immediately end the VPN session. This is equivalent to toggling the switch off in the Home tab.
+
+    **When it clears:** Automatically removed when the VPN service stops, whether due to manual disconnection, an error, or the system terminating the service.
+  </Accordion>
+
+  <Accordion title="RECONNECT — reconnection attempt notification (ID: 2)">
+    This notification appears when the connection drops unexpectedly and auto-reconnect is enabled.
+
+    **Format:** `Reconnection will be tried (LIFE = X)` where `X` is the number of reconnection attempts remaining.
+
+    **What it means:** The client detected an unexpected disconnection and will attempt to reconnect after the interval configured in `RECONNECTION_INTERVAL`. The `LIFE` counter decrements with each attempt.
+
+    **When it clears:** Automatically dismissed when the reconnection either succeeds (a new connection is established) or is cancelled (all attempts exhausted or the user manually disconnects).
+
+    See [reconnection settings](/reference/settings) for how to configure the attempt count and interval, or the [reconnection guide](/guides/reconnection) for a walkthrough.
+  </Accordion>
+
+  <Accordion title="ERROR — connection error notification (ID: 1)">
+    This notification appears whenever a recoverable or fatal error is detected during the connection lifecycle.
+
+    **Format:** `{LOCATION}: {ERROR_CODE}`
+
+    For example: `SSL: ERR_VERIFICATION_FAILED` or `PAP: ERR_AUTHENTICATION_FAILED`.
+
+    **Location prefixes** indicate which protocol layer or subsystem produced the error:
+
+    | Prefix | Layer |
+    |--------|-------|
+    | `SSL` | TLS handshake and certificate verification |
+    | `CERT` | Certificate parsing or validation |
+    | `CERT_PATH` | Certificate chain path validation |
+    | `PROXY` | HTTP proxy connection or authentication |
+    | `SSTP_REQUEST` | SSTP call setup phase |
+    | `SSTP_CONTROL` | SSTP control channel (ongoing) |
+    | `LCP` | PPP Link Control Protocol negotiation |
+    | `PAP` | PAP authentication |
+    | `CHAP` | MS-CHAPv2 (CHAP) authentication |
+    | `MSCHAPV2` | MS-CHAPv2 mutual authentication step |
+    | `EAP` | EAP authentication (not fully supported) |
+    | `IPCP` | IPv4 address negotiation |
+    | `IPV6CP` | IPv6 address negotiation |
+    | `IP` | IP tunnel initialization |
+    | `ROUTE` | Custom route parsing |
+    | `LOG` | Log file creation |
+    | `OSC` | Unexpected internal error |
+
+    **Common error codes:**
+
+    | Code | Meaning |
+    |------|---------|
+    | `ERR_TIMEOUT` | The layer did not receive a response within the expected time |
+    | `ERR_VERIFICATION_FAILED` | Certificate hostname or chain verification failed |
+    | `ERR_AUTHENTICATION_FAILED` | Credentials were rejected by the server |
+    | `ERR_UNEXPECTED_MESSAGE` | Received an unexpected or malformed protocol message |
+    | `ERR_DISCONNECT_REQUESTED` | The server requested a clean disconnection |
+    | `ERR_PARSING_FAILED` | A protocol message or certificate file could not be parsed |
+    | `ERR_NULL_PREFERENCE` | A required setting (such as a directory URI) is not configured |
+
+    See the [troubleshooting guide](/reference/troubleshooting) for remediation steps for the most common error codes.
+  </Accordion>
+
+  <Accordion title="CERTIFICATE — untrusted certificate notification (ID: 4)">
+    This notification appears when the server presents a TLS certificate that the client cannot verify against the system trust store or the configured trusted certificate directory.
+
+    **What it shows:** `You can download the untrusted server certificate`
+
+    **Warning text:** `untrusted certificates could have your device vulnerable`
+
+    **What it means:** The connection cannot be trusted until the server's certificate is verified. The server may be using a self-signed certificate or a certificate issued by an internal CA that is not in the system trust store.
+
+    **Action:** Tap the notification to save the server's certificate to your device. After saving, you can either:
+    - Install the certificate system-wide and re-enable **Verify Hostname**.
+    - Place the certificate in a directory and point `SSL_CERT_DIR` at it with `SSL_DO_SPECIFY_CERT` enabled.
+
+    <Warning>
+      Saving and trusting an untrusted certificate without verifying its authenticity out of band carries security risk. Only trust certificates from servers you control or have verified through a separate channel.
+    </Warning>
+
+    See the [certificates guide](/guides/certificates) for step-by-step instructions on installing and trusting server certificates.
+  </Accordion>
+</AccordionGroup>
+
+## Notification channel IDs at a glance
+
+| Channel name | ID | Trigger |
+|---|---|---|
+| `DISCONNECT` | 3 | VPN service starts |
+| `RECONNECT` | 2 | Auto-reconnect attempt begins |
+| `ERROR` | 1 | Any protocol layer reports an error |
+| `CERTIFICATE` | 4 | Server certificate is untrusted |

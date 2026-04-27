@@ -1,0 +1,94 @@
+---
+title: 'Authentication protocols: PAP and MS-CHAPv2'
+description: "Learn which authentication protocols Open SSTP Client supports, how PAP and MS-CHAPv2 differ, and how to match your server's authentication requirements."
+---
+
+Open SSTP Client authenticates VPN users at the PPP layer, after the TLS tunnel is established. The client supports two active protocols — PAP and MS-CHAPv2 — and by default offers both so the server can select whichever it requires. This page explains how each protocol works, how to configure them, and what to expect if authentication fails.
+
+## Supported protocols
+
+<CardGroup cols={2}>
+  <Card title="PAP" icon="key">
+    Password Authentication Protocol. The client sends the username and password in the PPP handshake. Simple and widely compatible, but credentials are transmitted in plaintext at the PPP layer. The outer TLS tunnel encrypts this exchange in transit, so the exposure risk is lower than it appears.
+  </Card>
+  <Card title="MS-CHAPv2" icon="shield">
+    Microsoft Challenge Handshake Authentication Protocol version 2. The server issues a challenge; the client responds with a cryptographic hash derived from the password. Credentials are never transmitted directly. MS-CHAPv2 also performs mutual authentication — the client verifies the server's response before accepting the connection.
+  </Card>
+</CardGroup>
+
+<Warning>
+  EAP-MSCHAPv2 is present in the source code but is **not supported** for production use. The README explicitly states "No EAP." Do not configure your server to require EAP, as the client will not complete authentication.
+</Warning>
+
+## Default behavior
+
+Both PAP and MS-CHAPv2 are enabled by default. During LCP negotiation, the client advertises both protocols. The server chooses one and the client responds accordingly. If your server requires only one specific protocol, you can restrict the client to that protocol alone.
+
+## How to configure
+
+<Steps>
+  <Step title="Open the Settings tab">
+    Navigate to the Settings tab in the app.
+  </Step>
+  <Step title="Locate PPP Auth Protocols">
+    Find the **PPP Auth Protocols** option under the PPP section.
+  </Step>
+  <Step title="Select the protocols to enable">
+    Check one or both of `PAP` and `MSCHAPv2`. The server will select from whichever protocols you enable. Leaving both checked is safe for most configurations.
+  </Step>
+  <Step title="Adjust the auth timeout if needed">
+    The **PPP Auth Timeout** (`PPP_AUTH_TIMEOUT`) defaults to 3 seconds. If authentication is timing out on a slow server, increase this value.
+  </Step>
+</Steps>
+
+## Choosing between PAP and MS-CHAPv2
+
+<AccordionGroup>
+  <Accordion title="When to prefer MS-CHAPv2">
+    MS-CHAPv2 is the better choice in almost every situation. It does not expose credentials directly, performs mutual authentication to verify the server identity, and is the default protocol on most Windows and SoftEther VPN servers. If your server supports it, use MS-CHAPv2.
+  </Accordion>
+  <Accordion title="When PAP may be required">
+    Some older or minimally configured servers only accept PAP. If the server rejects MS-CHAPv2 and authentication keeps failing, try disabling MS-CHAPv2 and using PAP only. Because SSTP wraps PPP inside TLS, the plaintext credentials in PAP are still protected in transit by the TLS layer.
+  </Accordion>
+  <Accordion title="When to disable one protocol">
+    If you know exactly which protocol your server requires, disabling the other reduces negotiation time and eliminates ambiguity. It also prevents a misconfigured server from inadvertently downgrading to the weaker protocol.
+  </Accordion>
+</AccordionGroup>
+
+## Authentication flow
+
+The following sequence shows how authentication fits into the full connection process.
+
+<Steps>
+  <Step title="TLS handshake">
+    The client connects to the server over TCP and completes a TLS handshake. The server certificate is verified (or skipped if hostname verification is disabled). See [SSL / Security settings](/reference/settings) for certificate configuration.
+  </Step>
+  <Step title="SSTP request phase">
+    The client sends an SSTP CALL_CONNECT_REQUEST over the TLS channel. The server responds to initiate the PPP session.
+  </Step>
+  <Step title="LCP negotiation">
+    The Link Control Protocol negotiation determines connection parameters, including which authentication protocol will be used. The client advertises the protocols enabled in `PPP_AUTH_PROTOCOLS`; the server picks one.
+  </Step>
+  <Step title="Authentication">
+    Depending on what the server selected:
+    - **PAP**: the client sends an Authenticate-Request containing the username and password. The server responds with Authenticate-Ack (success) or Authenticate-Nak (failure).
+    - **MS-CHAPv2**: the server sends a challenge. The client computes a response using the NT hash of the password and sends it back. The server verifies the response and the client verifies the server's authenticator in return.
+
+    If the server does not respond within `PPP_AUTH_TIMEOUT` seconds, the client reports `ERR_TIMEOUT`.
+  </Step>
+  <Step title="SSTP call connected">
+    After successful authentication, the client sends an SSTP CALL_CONNECTED message, completing the SSTP handshake.
+  </Step>
+  <Step title="IPCP / IPv6CP negotiation">
+    The client negotiates IP addresses for IPv4 and/or IPv6 depending on which network protocols are enabled in PPP settings.
+  </Step>
+</Steps>
+
+## Related settings
+
+| Setting | Key | Default |
+|---------|-----|---------|
+| Enabled auth protocols | `PPP_AUTH_PROTOCOLS` | `{"PAP", "MSCHAPv2"}` |
+| Auth timeout | `PPP_AUTH_TIMEOUT` | `3` seconds |
+
+See the [full settings reference](/reference/settings) for all PPP options, or the [troubleshooting guide](/reference/troubleshooting) if authentication is failing.

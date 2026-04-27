@@ -1,0 +1,168 @@
+---
+title: 'PPP network protocol configuration'
+description: 'Tune MRU and MTU sizes, choose PPP authentication protocols, enable IPv4 or IPv6, request a static address, and configure DNS options for your VPN.'
+---
+
+After the TLS and SSTP handshakes complete, Open SSTP Client runs PPP (Point-to-Point Protocol) over the tunnel to negotiate an IP address, authentication, and network parameters. The PPP settings in the **Setting** tab control frame sizing, which authentication methods to offer, whether IPv4 and IPv6 are requested, static IP assignment, and how DNS servers are discovered. You rarely need to change these from their defaults, but they give you full control when connecting to servers with non-standard configurations.
+
+## Frame size
+
+MRU and MTU determine the maximum size of PPP frames. Mismatched or oversized values can cause fragmentation or connection failures on networks with strict path MTU requirements.
+
+<AccordionGroup>
+  <Accordion title="MRU — Maximum Receive Unit (PPP_MRU)">
+    **Where:** Setting tab → MRU
+
+    **Default:** `1500`
+
+    **Valid range:** `68` – `2000`
+
+    The largest PPP frame (in bytes) that the client is willing to receive. This value is advertised to the server during LCP negotiation. If the server cannot accommodate the requested MRU it will propose a smaller value and negotiation continues.
+
+    Reduce MRU if you experience packet loss or truncation on high-latency or limited-bandwidth links. Values below `68` are rejected at validation time.
+  </Accordion>
+
+  <Accordion title="MTU — Maximum Transmission Unit (PPP_MTU)">
+    **Where:** Setting tab → MTU
+
+    **Default:** `1500`
+
+    **Valid range:** `68` – `2000`
+
+    The largest IP packet (in bytes) that the Android VPN interface will accept for transmission into the tunnel. Packets larger than this are dropped before entering the PPP layer. Set this to match or be smaller than the negotiated MRU to avoid fragmentation within the tunnel.
+  </Accordion>
+</AccordionGroup>
+
+## Authentication
+
+<AccordionGroup>
+  <Accordion title="Authentication Protocols (PPP_AUTH_PROTOCOLS)">
+    **Where:** Setting tab → Authentication Protocols (multi-select)
+
+    **Default:** `PAP`, `MSCHAPv2` (both selected)
+
+    The set of PPP authentication protocols the client offers to the server. The server picks the first protocol from its preference list that the client has advertised.
+
+    | Protocol | Description |
+    |----------|-------------|
+    | `PAP` | Password Authentication Protocol. Sends credentials in plaintext within the PPP layer. Safe in practice because the PPP layer runs inside TLS, but weaker than challenge-based protocols. |
+    | `MSCHAPv2` | Microsoft Challenge Handshake Authentication Protocol v2. Challenge-response authentication; the password is never transmitted directly. Recommended for most deployments. |
+
+    <Warning>
+      At least one authentication protocol must be selected. If the set is empty, the app refuses to connect.
+    </Warning>
+
+    <Note>
+      EAP-MSCHAPv2 appears in the source code (`AUTH_PROTOCOL_EAP_MSCHAPv2`) but is not exposed as a selectable option in the UI. Only PAP and MSCHAPv2 are officially supported.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Authentication Timeout (PPP_AUTH_TIMEOUT)">
+    **Where:** Setting tab → Auth Timeout
+
+    **Default:** `3` seconds
+
+    **Minimum:** `1` second
+
+    How long the client waits for the server to respond to each PPP authentication exchange before treating the attempt as failed. Increase this value if you are connecting over a high-latency link and authentication is timing out before the server can respond.
+  </Accordion>
+</AccordionGroup>
+
+## IPv4 networking
+
+<AccordionGroup>
+  <Accordion title="Enable IPv4 (PPP_IPv4_ENABLED)">
+    **Where:** Setting tab → Enable IPv4
+
+    **Default:** `true` (enabled)
+
+    Controls whether the client requests an IPv4 address from the server during IPCP negotiation. Disable only if your server is IPv6-only and you do not need IPv4 connectivity. At least one of IPv4 or IPv6 must remain enabled — the app rejects a configuration where both are off.
+  </Accordion>
+
+  <Accordion title="Request Static IPv4 Address (PPP_DO_REQUEST_STATIC_IPv4_ADDRESS)">
+    **Where:** Setting tab → Request Static IP Address
+
+    **Default:** `false` (disabled)
+
+    When enabled, the client includes the address specified in **Static IPv4 Address** in its IPCP `Configure-Request`, asking the server to assign that specific address. The server may accept or reject the request. If this option is enabled but the address field is empty, the app refuses to connect.
+
+    This field is only evaluated when **Enable IPv4** is `true`.
+  </Accordion>
+
+  <Accordion title="Static IPv4 Address (PPP_STATIC_IPv4_ADDRESS)">
+    **Where:** Setting tab → Static IP Address
+
+    **Default:** *(empty)*
+
+    The IPv4 address to request from the server during IPCP negotiation. Must be a valid dotted-decimal IPv4 address (e.g. `10.0.0.42`). Only used when **Request Static IPv4 Address** is enabled.
+  </Accordion>
+</AccordionGroup>
+
+## IPv6 networking
+
+<AccordionGroup>
+  <Accordion title="Enable IPv6 (PPP_IPv6_ENABLED)">
+    **Where:** Setting tab → Enable IPv6
+
+    **Default:** `false` (disabled)
+
+    When enabled, the client requests an IPv6 address through IPv6CP negotiation. The server assigns a link-local address (`fe80::/10`) to the VPN interface.
+
+    <Warning>
+      IPv6 support is limited to link-local addressing. Enabling this option does **not** guarantee full IPv6 internet connectivity — whether you can reach global IPv6 addresses depends entirely on your VPN server's configuration and routing setup.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## DNS
+
+<AccordionGroup>
+  <Accordion title="Request DNS from Server (DNS_DO_REQUEST_ADDRESS)">
+    **Where:** Setting tab → Request DNS Address
+
+    **Default:** `true` (enabled)
+
+    When enabled, the client uses IPCP to request a DNS server address from the VPN server. The returned address is set as the DNS server for the VPN interface. This is the normal behavior for most VPN deployments.
+
+    Disable this if you want to supply your own DNS server address and the server's advertised DNS address would otherwise take precedence.
+  </Accordion>
+
+  <Accordion title="Use Custom DNS Server (DNS_DO_USE_CUSTOM_SERVER)">
+    **Where:** Setting tab → Use Custom DNS Server
+
+    **Default:** `false` (disabled)
+
+    When enabled, the address in **Custom DNS Server Address** is configured on the VPN interface instead of (or in addition to) the server-provided DNS address. Traffic to this DNS server IP is automatically routed through the VPN tunnel.
+
+    If this option is enabled but the custom address field is empty, the app refuses to connect.
+  </Accordion>
+
+  <Accordion title="Custom DNS Server Address (DNS_CUSTOM_ADDRESS)">
+    **Where:** Setting tab → Custom DNS Server Address
+
+    **Default:** *(empty)*
+
+    The IP address of the DNS server to use for the VPN interface. Can be an IPv4 or IPv6 address (e.g. `1.1.1.1` or `2606:4700:4700::1111`).
+
+    <Warning>
+      If you enter an IPv4 DNS address but disable **Enable IPv4**, DNS resolution will likely fail because the route to that DNS server will not exist on the VPN interface. The same applies to IPv6: an IPv6 DNS address requires **Enable IPv6** to be on.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Connection settings" icon="plug" href="/configuration/connection">
+    Set the server hostname, username, password, and SSL port.
+  </Card>
+  <Card title="Routing rules" icon="route" href="/configuration/routing">
+    Control which traffic is sent through the VPN tunnel.
+  </Card>
+  <Card title="Authentication reference" icon="key" href="/reference/authentication">
+    Details on PAP and MSCHAPv2 protocol behavior.
+  </Card>
+  <Card title="Troubleshooting" icon="triangle-alert" href="/reference/troubleshooting">
+    Diagnose PPP authentication failures and IP address negotiation errors.
+  </Card>
+</CardGroup>

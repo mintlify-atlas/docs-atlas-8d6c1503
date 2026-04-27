@@ -1,0 +1,147 @@
+---
+title: "Enable logging and debug VPN connections"
+description: "Use Open SSTP Client's built-in logging to save connection logs to a file, and learn how to use cipher suite selection for packet capture with Wireshark."
+---
+
+When a VPN connection fails or behaves unexpectedly, two tools in Open SSTP Client help you investigate the problem: the connection log, which writes timestamped events to a text file on device storage, and the cipher suite selector, which forces the app to use a TLS cipher that Wireshark can decrypt. This guide explains how to enable and use both.
+
+## Connection logging
+
+Open SSTP Client can write a log file for each VPN session. The log records the connection lifecycle, error details, and stack traces when something goes wrong.
+
+### Enabling the log
+
+<Steps>
+  <Step title="Open the Setting tab">
+    Switch to the **Setting** tab in the app.
+  </Step>
+  <Step title="Enable Log">
+    Find and enable the **Enable Log** toggle (`LOG_DO_SAVE_LOG`). Log saving is disabled by default.
+  </Step>
+  <Step title="Choose a save directory">
+    Tap the directory picker that appears and select a folder on device storage where log files should be written. This sets the `LOG_DIR` preference. The app must be granted persistent access to the chosen directory.
+  </Step>
+</Steps>
+
+### Log file naming
+
+Each connection creates a new log file. The filename follows this pattern:
+
+```
+log_osc_20240315143022.txt
+```
+
+The timestamp portion uses the format `yyyyMMddHHmmss`, recorded at the moment the connection is initiated. Files accumulate in the chosen directory; the app does not delete old log files automatically.
+
+### Log file contents
+
+Each entry in the log is prefixed with a timestamp:
+
+```
+[2024-03-15 14:30:22.541] Establish VPN connection
+[2024-03-15 14:30:23.118] SSL: ERR_VERIFICATION_FAILED
+[2024-03-15 14:32:05.009] Terminate VPN connection
+```
+
+The standard lifecycle entries are:
+
+| Entry | When it appears |
+|---|---|
+| `Establish VPN connection` | Written when the VPN service starts and logging begins. |
+| `Terminate VPN connection` | Written when the VPN service is destroyed (manual disconnect, error, or system termination). |
+| Reconnection messages | `Reconnection will be tried (LIFE = X)` is logged each time a reconnect is attempted. |
+| Error details | Written when the connection terminates due to an error, including a full stack trace. |
+
+### Error message format
+
+When the connection fails, the log and the error notification both follow the same format:
+
+```
+<Layer>: <Result>
+```
+
+The layer identifies where in the protocol stack the failure occurred:
+
+| Layer | What it covers |
+|---|---|
+| `SSL` | TLS handshake, hostname verification, HTTP upgrade |
+| `CERT` | Certificate parsing from the trusted directory |
+| `CERT_PATH` | Certificate chain validation (untrusted cert) |
+| `PROXY` | HTTP proxy CONNECT handshake |
+| `SSTP_REQUEST` | SSTP call setup phase |
+| `SSTP_CONTROL` | SSTP control channel (ongoing) |
+| `LCP` | Link Control Protocol negotiation |
+| `PAP` | PAP authentication |
+| `CHAP` | MS-CHAPv2 authentication |
+| `MSCHAPV2` | MS-CHAPv2 mutual authentication step |
+| `EAP` | Extensible Authentication Protocol (not supported) |
+| `IPCP` | IP Control Protocol (IPv4 address assignment) |
+| `IPV6CP` | IPv6 Control Protocol (IPv6 address assignment) |
+| `ROUTE` | Custom route parsing |
+| `IP` | IP tunnel initialization |
+
+Common result codes include:
+
+| Result code | Meaning |
+|---|---|
+| `ERR_TIMEOUT` | No response received within the expected window |
+| `ERR_VERIFICATION_FAILED` | Certificate or hostname check failed |
+| `ERR_AUTHENTICATION_FAILED` | Credentials rejected by the server or proxy |
+| `ERR_PARSING_FAILED` | Could not parse a certificate file |
+| `ERR_UNEXPECTED_MESSAGE` | Received a protocol message that was not expected |
+
+<Note>
+  Log entries are written with millisecond precision timestamps. When comparing log output to server-side logs, be aware of clock skew between the device and server.
+</Note>
+
+## Debugging with Wireshark
+
+Many connection problems are most easily diagnosed by inspecting the raw packet exchange between the app and the VPN server. Open SSTP Client supports this by letting you restrict the TLS cipher suite to one that Wireshark (or similar tools) can decrypt.
+
+### Enabling a decryptable cipher suite
+
+<Steps>
+  <Step title="Open the Setting tab">
+    Switch to the **Setting** tab.
+  </Step>
+  <Step title="Enable Select Cipher Suites">
+    Find and enable the **Select Cipher Suites** toggle in the SSL section.
+  </Step>
+  <Step title="Choose a Wireshark-compatible cipher">
+    Select one of the following from the cipher list:
+    - `TLS_RSA_WITH_AES_128_CBC_SHA`
+    - `TLS_RSA_WITH_AES_256_CBC_SHA`
+
+    Both use RSA key exchange, which allows Wireshark to derive the session keys from the server's private key and decrypt the traffic.
+  </Step>
+  <Step title="Capture traffic">
+    Use Wireshark on a machine that can see the device's traffic (via a Wi-Fi access point you control, for example), or use a Wireshark-compatible capture app on the Android device itself.
+  </Step>
+</Steps>
+
+<Warning>
+  The RSA key exchange ciphers (`TLS_RSA_WITH_AES_128_CBC_SHA` and `TLS_RSA_WITH_AES_256_CBC_SHA`) do not provide forward secrecy. They are significantly weaker than modern ECDHE-based cipher suites. Only enable cipher suite selection during active debugging sessions on networks you control. Disable it again before returning to normal use.
+</Warning>
+
+### Using the Android Studio emulator
+
+The Android Studio emulator is useful for debugging connection behaviour in a controlled environment. You can capture emulator network traffic directly on your development machine with Wireshark without needing a physical device or an external capture point.
+
+<Tip>
+  Run the emulator with a writable system image if you need to install a test certificate into the system trust store for debugging self-signed certificate setups.
+</Tip>
+
+## Debugging philosophy
+
+Network issues in VPN clients are often environment-specific. A problem that appears on one server configuration, carrier network, or Android version may not be reproducible on a different setup. The log file and Wireshark capture give you the raw data needed to diagnose the specific combination of factors affecting your environment.
+
+<Info>
+  If you encounter an issue that you cannot reproduce with the available tools, the log file — especially the stack trace — is the most useful artifact to include when reporting a bug. See [Contributing](/reference/contributing) for guidance on filing issues.
+</Info>
+
+## Related pages
+
+- [SSL & security settings](/configuration/ssl-security) — cipher suite and TLS version options
+- [Use custom trusted certificates for SSL](/guides/certificates) — certificate errors you may see in logs
+- [Configure automatic VPN reconnection](/guides/reconnection) — reconnection events are also logged
+- [Troubleshooting](/reference/troubleshooting) — reference for error codes and common failure patterns

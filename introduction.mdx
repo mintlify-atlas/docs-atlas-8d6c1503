@@ -1,0 +1,57 @@
+---
+title: "Open SSTP Client: Android VPN using MS-SSTP"
+description: "Learn what Open SSTP Client is, how MS-SSTP tunneling works on Android, and which server types are supported for VPN connectivity."
+---
+
+Open SSTP Client is a free, open-source Android application that implements Microsoft's Secure Socket Tunneling Protocol (MS-SSTP). It lets you connect an Android device to a compatible VPN server without relying on proprietary clients, and its source code is publicly available under the MIT license.
+
+## What is MS-SSTP?
+
+MS-SSTP (Secure Socket Tunneling Protocol) is a VPN tunneling protocol developed by Microsoft. It encapsulates PPP (Point-to-Point Protocol) frames inside an HTTPS session, which means all VPN traffic travels over TLS on **port 443** — the same port used by ordinary web traffic. This design allows SSTP connections to pass through firewalls and proxies that block other VPN protocols.
+
+## Supported servers
+
+Open SSTP Client has been primarily developed and tested against the following server software:
+
+- **VPN Azure Cloud** — a free relay VPN service provided by SoftEther
+- **SoftEther VPN Server** — a cross-platform, open-source VPN server
+
+Behavior with other SSTP-compatible servers (such as Windows Server's built-in SSTP role) is not officially supported, though successful connections have been reported. If you are using a self-signed certificate on your server, you will need to install that certificate on your device and disable the **Verify Hostname** option in the SSL settings.
+
+## System requirements
+
+- An Android device running a version of Android supported by the installed APK
+- Network access (Wi-Fi or mobile data) to reach your VPN server on port 443
+
+## Limitations
+
+Be aware of the following constraints before connecting:
+
+<Warning>
+  Open SSTP Client supports only **PAP** and **MS-CHAPv2** authentication protocols. EAP authentication is not supported.
+</Warning>
+
+<Note>
+  Your VPN server must have DHCP enabled. The app relies on DHCP to obtain an IP address for the VPN interface.
+</Note>
+
+- Testing has been done primarily with VPN Azure Cloud and SoftEther VPN Server. Compatibility with other servers may vary.
+- The **Host** field accepts a hostname or IP address only — port numbers must be configured separately in the Settings tab (default: 443).
+- IPv6 support assigns only a link-local address; full IPv6 connectivity is not guaranteed.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Install Open SSTP Client from Google Play or download a release APK.
+  </Card>
+  <Card title="Quickstart" icon="play" href="/quickstart">
+    Connect to your VPN server in a few steps.
+  </Card>
+  <Card title="Connection settings" icon="server" href="/configuration/connection">
+    Configure host, port, and SSL options for your server.
+  </Card>
+  <Card title="Authentication" icon="key" href="/reference/authentication">
+    Understand PAP and MS-CHAPv2 authentication options.
+  </Card>
+</CardGroup>

@@ -1,0 +1,108 @@
+---
+title: "Save and load VPN connection profiles"
+description: "Learn how to save your Open SSTP Client configuration as a named profile and reload it later to switch between different VPN server setups."
+---
+
+Profiles let you snapshot your entire Open SSTP Client configuration into a named entry and restore it later with a single tap. This makes it practical to maintain separate setups for different servers — for example, a work VPN and a home lab server — without re-entering every setting each time you switch.
+
+## What profiles save
+
+A profile captures the full state of your settings at save time. This includes:
+
+- **Connection** — hostname, username, password, port number
+- **SSL / TLS** — protocol version, hostname verification, trusted certificate directory, custom SNI, cipher suite selection
+- **PPP & network** — MRU, MTU, authentication protocols, IPv4/IPv6 options, DNS settings, static address requests
+- **Routing** — default route, private address routing, custom routes, app-based rule configuration and selected apps
+- **Proxy** — proxy hostname, port, and credentials
+- **Reconnection** — retry count and interval
+- **Logging** — log directory and enable flag
+
+### What is not saved
+
+The following runtime-only flags are excluded from profiles and are never written to or read from a profile file:
+
+| Excluded key | Purpose |
+|---|---|
+| `ROOT_STATE` | Whether the VPN is currently active |
+| `HOME_CONNECTOR` | Internal UI connection state |
+| `HOME_STATUS` | Status message shown in the home tab |
+
+These values reflect the live state of the app and would not be meaningful when imported into a fresh session.
+
+## Saving a profile
+
+<Steps>
+  <Step title="Open the option menu">
+    From the home tab, tap the three-dot menu in the upper-right corner of the screen.
+  </Step>
+  <Step title="Tap Save Profile">
+    Select **Save Profile** from the menu. You will be prompted to enter a name for the profile.
+  </Step>
+  <Step title="Enter a profile name">
+    Type a descriptive name (for example, `Work VPN` or `Home Lab`) and confirm. The current settings are saved immediately.
+  </Step>
+</Steps>
+
+## Loading a profile
+
+<Steps>
+  <Step title="Open the option menu">
+    Tap the three-dot menu in the upper-right corner of the home tab.
+  </Step>
+  <Step title="Tap Load Profile">
+    Select **Load Profile**. A list of saved profiles is shown.
+  </Step>
+  <Step title="Select a profile">
+    Each entry in the list displays a summary showing the hostname, username, and port number. Tap the profile you want to restore.
+  </Step>
+  <Step title="Confirm">
+    All saved settings are applied immediately. The home tab fields update to reflect the loaded profile.
+  </Step>
+</Steps>
+
+## Profile summary format
+
+When browsing saved profiles, each entry shows a three-field summary extracted from the profile data:
+
+```text
+[Hostname]
+vpn.example.com
+
+[Username]
+alice
+
+[Port Number]
+443
+```
+
+This lets you identify the right profile at a glance without needing to load it first.
+
+## Profile file format
+
+Profiles are stored as plain text using ASCII control characters as delimiters:
+
+- **Record separator** (`0x1E`) separates individual key-value pairs
+- **Unit separator** (`0x1F`) separates the key name from its value within each pair
+
+Every `OscPrefKey` value (except the excluded runtime keys) can appear in a profile. This format is intentionally simple and human-readable with a hex editor, though it is not designed for hand-editing.
+
+<Note>
+  Set-type preferences (such as selected apps or enabled cipher suites) encode multiple values by joining them with additional unit separator characters within the same record.
+</Note>
+
+## Tips for managing profiles
+
+<Tip>
+  Create one profile per VPN server you connect to regularly. Good names include the server's purpose and location, such as `Office - Frankfurt` or `Dev Server - US East`.
+</Tip>
+
+<Tip>
+  Before changing experimental settings (custom cipher suites, static IP requests), save your current working profile first. If the new settings fail to connect, you can restore the known-good configuration in seconds.
+</Tip>
+
+## Related pages
+
+- [Connection configuration](/configuration/connection) — hostname, port, and credential settings
+- [SSL & security settings](/configuration/ssl-security) — certificate and TLS options saved in profiles
+- [PPP & network settings](/configuration/ppp-network) — protocol and address settings
+- [Routing configuration](/configuration/routing) — route and app-based rule settings

@@ -1,0 +1,99 @@
+---
+title: 'Configure your VPN connection settings'
+description: 'Set up the core parameters required to connect to your SSTP VPN server: hostname, credentials, and SSL port. Find these in the Home and Setting tabs.'
+---
+
+Before you can establish a VPN tunnel, you need to supply three pieces of information: the server's hostname (or IP address), your account credentials, and the SSL port. The **Home** tab holds the hostname, username, and password fields. The **Setting** tab exposes the SSL port and all other advanced options. Once those fields are filled in and the toggle is switched on, a key icon appears in the Android status bar to confirm the connection is live.
+
+<Note>
+  The server must have DHCP enabled. Open SSTP Client relies on DHCP to obtain an IP address during the PPP negotiation phase.
+</Note>
+
+## Required fields
+
+The following three fields must be non-empty before the app will attempt a connection. If any of them are missing, the app shows an `INVALID SETTING` toast and refuses to connect.
+
+<AccordionGroup>
+  <Accordion title="Host (HOME_HOSTNAME)">
+    **Where:** Home tab → Host field
+
+    **Default:** *(empty — must be set)*
+
+    The fully qualified domain name or IP address of your SSTP VPN server. This value is also used as the TLS SNI hostname and for hostname verification during the SSL handshake, so it must match the server's certificate subject.
+
+    **Valid values:**
+    - Domain name: `vpn.example.com`
+    - IPv4 address: `203.0.113.42`
+    - IPv6 address: `2001:db8::1`
+
+    <Warning>
+      Do **not** include a port number here (e.g. `vpn.example.com:443` is invalid). Configure the port separately in the SSL Port field under the Setting tab.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Username (HOME_USERNAME)">
+    **Where:** Home tab → Username field
+
+    **Default:** *(empty — must be set)*
+
+    Your VPN account username, passed to the server during PPP authentication. The exact format depends on your server configuration — some servers require a plain username (`alice`), while others expect a domain-prefixed form (`DOMAIN\alice`).
+  </Accordion>
+
+  <Accordion title="Password (HOME_PASSWORD)">
+    **Where:** Home tab → Password field
+
+    **Default:** *(empty — must be set)*
+
+    Your VPN account password. The value is stored in Android's SharedPreferences and is transmitted over the already-established TLS tunnel during PPP authentication, so it is never sent in plaintext over the network.
+  </Accordion>
+</AccordionGroup>
+
+## Network settings
+
+<AccordionGroup>
+  <Accordion title="SSL Port (SSL_PORT)">
+    **Where:** Setting tab → SSL Port
+
+    **Default:** `443`
+
+    **Valid range:** `0` – `65535`
+
+    The TCP port on which the SSTP server listens. Standard SSTP uses port `443` (HTTPS), which is also the default. Change this only if your server is configured to listen on a non-standard port.
+
+    When an HTTP proxy is enabled, the app connects the TCP socket to the proxy host and port instead, then sends an HTTP `CONNECT` request to tunnel through to this SSL port on the VPN server. See [Proxy configuration](/configuration/proxy) for details.
+  </Accordion>
+</AccordionGroup>
+
+## Connecting and disconnecting
+
+<Steps>
+  <Step title="Fill in Host, Username, and Password">
+    Open the **Home** tab and enter your server hostname, username, and password.
+  </Step>
+  <Step title="Adjust the SSL port if needed">
+    Open the **Setting** tab and change **SSL Port** if your server does not use the default port 443.
+  </Step>
+  <Step title="Toggle the connection switch">
+    Return to the **Home** tab and flip the switch to **on**. The app negotiates TLS, sends an HTTP SSTP upgrade request, and completes PPP authentication. A key icon in the status bar confirms success.
+  </Step>
+  <Step title="Disconnect when done">
+    Flip the switch back to **off** in the Home tab, or tap the persistent VPN notification.
+  </Step>
+</Steps>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="SSL and TLS security" icon="lock" href="/configuration/ssl-security">
+    Configure TLS version, hostname verification, cipher suites, and trusted certificates.
+  </Card>
+  <Card title="PPP network protocol" icon="network" href="/configuration/ppp-network">
+    Set MRU/MTU, authentication protocols, IPv4/IPv6, and DNS options.
+  </Card>
+  <Card title="Proxy configuration" icon="server" href="/configuration/proxy">
+    Route the SSTP connection through an HTTP proxy server.
+  </Card>
+  <Card title="Profiles" icon="bookmark" href="/guides/profiles">
+    Save and load connection profiles from the options menu.
+  </Card>
+</CardGroup>

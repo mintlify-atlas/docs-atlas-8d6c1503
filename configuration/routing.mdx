@@ -1,0 +1,151 @@
+---
+title: 'VPN routing rules and traffic control'
+description: 'Configure which traffic enters the VPN tunnel using default routes, private address ranges, custom CIDR entries, and per-app allow or block lists.'
+---
+
+By default, Open SSTP Client adds a default route so that all device traffic is sent through the VPN tunnel. The routing settings in the **Setting** tab let you narrow that to specific destinations — private address ranges, hand-crafted CIDR blocks, or individual apps — giving you full control over split-tunneling behavior. Each routing option is additive: the routes you enable are merged into the VPN interface's routing table alongside any addresses pushed by the server during IPCP.
+
+## Default and private routes
+
+<AccordionGroup>
+  <Accordion title="Add Default Route (ROUTE_DO_ADD_DEFAULT_ROUTE)">
+    **Where:** Setting tab → Add Default Route
+
+    **Default:** `true` (enabled)
+
+    Adds a `0.0.0.0/0` (and `::/0` when IPv6 is enabled) route to the VPN interface, causing all outbound traffic to be sent through the tunnel. This is the standard "full tunnel" mode used by most VPN deployments.
+
+    Disable this if you want to route only specific destinations through the VPN and leave all other traffic on the local network — a configuration commonly called split tunneling. When disabled, you must add explicit routes via **Custom Routes** or rely on server-pushed routes; otherwise the VPN interface will carry no traffic at all.
+
+    <Tip>
+      When using **App-Based Routing**, keep this option enabled. Even if an app is in the allowed list, it cannot use the VPN tunnel unless a matching route exists in the routing table.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Route Private Addresses (ROUTE_DO_ROUTE_PRIVATE_ADDRESSES)">
+    **Where:** Setting tab → Route Private Addresses
+
+    **Default:** `false` (disabled)
+
+    Adds routes for private address ranges to the VPN interface:
+
+    - IPv4: `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` (RFC 1918)
+    - IPv6: `fc00::/7` (Unique Local Addresses, when IPv6 is enabled)
+
+    Enable this when **Add Default Route** is off and you need to reach resources on the remote private network (e.g. a corporate LAN) while keeping regular internet traffic on the local connection. If **Add Default Route** is already enabled, enabling this option has no additional effect because the default route already covers these ranges.
+  </Accordion>
+</AccordionGroup>
+
+## Custom CIDR routes
+
+<AccordionGroup>
+  <Accordion title="Add Custom Routes (ROUTE_DO_ADD_CUSTOM_ROUTES)">
+    **Where:** Setting tab → Add Custom Routes
+
+    **Default:** `false` (disabled)
+
+    When enabled, the routes listed in **Custom Routes** are added to the VPN interface in addition to any other configured routes. This lets you route specific subnets — such as a particular cloud provider's IP ranges or an on-premises data center block — through the tunnel while leaving everything else on the local network.
+  </Accordion>
+
+  <Accordion title="Custom Routes (ROUTE_CUSTOM_ROUTES)">
+    **Where:** Setting tab → Custom Routes
+
+    **Default:** *(empty)*
+
+    A newline-separated list of CIDR blocks to route through the VPN interface. Both IPv4 and IPv6 CIDR notation are accepted. Enter one CIDR prefix per line.
+
+    **Examples:**
+
+    ```text
+    10.8.0.0/24
+    192.0.2.0/24
+    2001:db8::/32
+    ```
+
+    Each entry must be a valid CIDR block in `address/prefix` format. If any entry cannot be parsed, the connection attempt fails immediately with a `ROUTE: ERR_PARSING_FAILED` error. This field is only read when **Add Custom Routes** is enabled.
+  </Accordion>
+</AccordionGroup>
+
+## App-based routing
+
+App-based routing lets you restrict VPN access to specific apps, or exclude specific apps from using the tunnel, without changing the routing table. Android enforces this at the VPN interface level — traffic from apps outside the policy bypasses the tunnel entirely.
+
+<AccordionGroup>
+  <Accordion title="Enable App-Based Rule (ROUTE_DO_ENABLE_APP_BASED_RULE)">
+    **Where:** Setting tab → Enable App-Based Rule
+
+    **Default:** `false` (disabled)
+
+    Activates per-app routing policy. When enabled, the **App List Type** and **Selected Apps** settings determine which apps can use the tunnel. When disabled, all apps are subject to the same routing rules.
+  </Accordion>
+
+  <Accordion title="App List Type (ROUTE_APP_LIST_TYPE)">
+    **Where:** Setting tab → App List Type
+
+    **Default:** `Allowed Apps`
+
+    **Options:** `Allowed Apps`, `Disallowed Apps`
+
+    Determines how **Selected Apps** is interpreted:
+
+    | Value | Behavior |
+    |-------|----------|
+    | `Allowed Apps` | Only the apps in **Selected Apps** are allowed to send traffic through the VPN interface. All other apps bypass the tunnel. |
+    | `Disallowed Apps` | All apps except those in **Selected Apps** use the VPN interface. The listed apps bypass the tunnel. |
+
+    Choose `Allowed Apps` for a minimal-trust setup where only specific apps (e.g. a browser or business app) use the corporate VPN. Choose `Disallowed Apps` to exclude apps like local media players or device management agents that should never route through the tunnel.
+  </Accordion>
+
+  <Accordion title="Show Background Apps (ROUTE_DO_SHOW_BACKGROUND_APPS)">
+    **Where:** Setting tab → Show Background Apps
+
+    **Default:** `false` (disabled)
+
+    When disabled, the app selection screen shows only apps that have a launcher icon (foreground/user-visible apps). Enable this to also show background services and system components that do not appear in the app drawer, allowing you to include or exclude them in the routing policy.
+  </Accordion>
+
+  <Accordion title="Selected Apps (ROUTE_SELECTED_APPS)">
+    **Where:** Setting tab → Select Allowed/Disallowed Apps
+
+    **Default:** *(empty set)*
+
+    The set of Android package names that the app-based routing rule applies to. Package names are chosen from the app picker UI (e.g. `com.example.browser`). This field is only evaluated when **Enable App-Based Rule** is `true`.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  Allowed apps cannot use the VPN tunnel if their destination addresses are not covered by the routing table. When using app-based routing, enable **Add Default Route** to ensure routable destinations exist for your allowed apps. See the [app-based routing guide](/guides/app-based-routing) for worked examples.
+</Warning>
+
+## Routing decision flow
+
+The diagram below shows how Android resolves which interface carries a packet:
+
+<Steps>
+  <Step title="App filter (if enabled)">
+    If **Enable App-Based Rule** is on, Android checks whether the originating app is in the allowed or disallowed set. Apps that fail this check send their packets through the default (non-VPN) network interface directly.
+  </Step>
+  <Step title="Route lookup">
+    For apps that pass the filter (or when no filter is active), Android consults the VPN interface's routing table. Routes are populated from: the default route (if enabled), private address ranges (if enabled), custom CIDR entries (if enabled), and addresses pushed by the server during IPCP.
+  </Step>
+  <Step title="Tunnel or bypass">
+    Packets whose destination matches a VPN route enter the tunnel. Packets with no matching VPN route are sent through the device's regular network connection.
+  </Step>
+</Steps>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="App-based routing guide" icon="app-window" href="/guides/app-based-routing">
+    Walkthrough for setting up per-app VPN rules with worked examples.
+  </Card>
+  <Card title="PPP network protocol" icon="network" href="/configuration/ppp-network">
+    Configure IPv4/IPv6 and DNS settings that affect which routes are available.
+  </Card>
+  <Card title="Connection settings" icon="plug" href="/configuration/connection">
+    Set the server hostname, credentials, and SSL port.
+  </Card>
+  <Card title="Settings reference" icon="list" href="/reference/settings">
+    Complete list of all preference keys and their default values.
+  </Card>
+</CardGroup>

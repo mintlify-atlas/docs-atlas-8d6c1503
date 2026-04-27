@@ -1,81 +1,79 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
-icon: 'rocket'
+title: "Get started with Open SSTP Client"
+description: "Connect to your SSTP VPN server in minutes: enter your host, username, and password in Open SSTP Client, then toggle the switch to establish the tunnel."
 ---
 
-## Get started in three steps
+Open SSTP Client connects to MS-SSTP VPN servers through an encrypted TLS tunnel on port 443. This guide walks you through entering your credentials, making your first connection, and disconnecting — all from the app's Home and Setting tabs.
 
-Get your documentation site running locally and make your first customization.
+<Note>
+Before connecting, confirm that your VPN server has DHCP enabled. The app cannot assign an IP address without it.
+</Note>
 
-### Step 1: Set up your local environment
+## Connect to your VPN
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+<Steps>
+  <Step title="Open the app and go to the Home tab">
+    Launch Open SSTP Client. The **Home** tab is displayed by default. You will see fields for **Host**, **Username**, and **Password**, and a toggle switch.
+  </Step>
+  <Step title="Enter your server hostname">
+    Tap the **Host** field and enter your VPN server's hostname or IP address.
 
-### Step 2: Deploy your changes
+    <Warning>
+      Enter only the hostname or IP address — do not include a port number or `http://` prefix. For example, use `vpn.example.com`, not `vpn.example.com:443`. The port is configured separately in the Setting tab (default: 443).
+    </Warning>
+  </Step>
+  <Step title="Enter your username and password">
+    Fill in the **Username** and **Password** fields with your VPN account credentials.
+  </Step>
+  <Step title="Turn on the VPN">
+    Tap the toggle switch to **On**. The app will begin establishing the connection. The status field updates as the connection progresses through SSL handshake, SSTP, and PPP negotiation.
+  </Step>
+  <Step title="Confirm the connection is active">
+    When the VPN is connected, a **key icon** appears in the Android status bar. The ongoing VPN notification also appears in the notification drawer.
+  </Step>
+</Steps>
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+## Disconnect from the VPN
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+You can disconnect in two ways:
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+- **Home tab**: Tap the toggle switch to turn it **Off**
+- **Notification**: Pull down the notification drawer and tap **DISCONNECT** in the ongoing VPN notification
 
-### Step 3: Go live
+## Use the Quick Settings tile
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+Open SSTP Client includes a Quick Settings tile so you can toggle the VPN without opening the app.
+
+<Steps>
+  <Step title="Add the tile">
+    Pull down the Quick Settings panel, tap **Edit** (or the pencil icon), and drag the **Open SSTP Client** tile into your active tiles.
+  </Step>
+  <Step title="Toggle from Quick Settings">
+    Tap the tile to connect or disconnect. The tile shows the current VPN state.
+  </Step>
+</Steps>
+
+## Save your configuration
+
+Once your connection is working, save it as a profile so you don't have to re-enter credentials next time.
+
+<Info>
+Go to the upper-right option menu and tap **Save Profile**. You can save multiple profiles for different servers and switch between them quickly. See the [Profiles guide](/guides/profiles) for details.
+</Info>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="SSL and security" icon="shield-halved" href="/configuration/ssl-security">
+    Configure TLS version, certificate verification, and cipher suites.
+  </Card>
+  <Card title="Routing" icon="route" href="/configuration/routing">
+    Control which traffic goes through the VPN, including per-app rules.
+  </Card>
+  <Card title="Profiles" icon="floppy-disk" href="/guides/profiles">
+    Save and load VPN configurations for quick switching.
+  </Card>
+  <Card title="Troubleshooting" icon="circle-exclamation" href="/reference/troubleshooting">
+    Diagnose and fix common connection errors.
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

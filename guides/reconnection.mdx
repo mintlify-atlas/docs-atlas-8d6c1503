@@ -1,0 +1,103 @@
+---
+title: "Configure automatic VPN reconnection"
+description: "Set up Open SSTP Client to automatically reconnect after a dropped VPN connection, with configurable retry count, interval, and lifetime settings."
+---
+
+Network interruptions — a brief loss of mobile signal, a Wi-Fi handoff, or a server-side timeout — can drop an active VPN connection. Open SSTP Client's reconnection feature detects unexpected disconnections and automatically retries the connection without any manual intervention, up to a configurable number of attempts.
+
+## How reconnection works
+
+When the VPN terminates in a way that was not initiated by you (for example, the server closes the connection or a network error occurs), the app checks whether reconnection is enabled. If it is, the following sequence runs:
+
+1. The internal `RECONNECTION_LIFE` counter is decremented by one.
+2. A notification is posted: **"Reconnection will be tried (LIFE = X)"**, where X is the remaining attempt count.
+3. The app waits for the configured interval (in seconds).
+4. A new VPN client session is initialized.
+5. If the connection succeeds, `RECONNECTION_LIFE` is reset to the full `RECONNECTION_COUNT` value.
+6. If the connection fails again and life reaches zero, no further attempts are made.
+
+<Note>
+  Reconnection only triggers on unexpected disconnections. If you turn off the VPN switch manually or tap **DISCONNECT** in the notification, no reconnection attempt is made.
+</Note>
+
+## Reconnection settings
+
+| Setting | Key | Default | Description |
+|---|---|---|---|
+| Enable Reconnection | `RECONNECTION_ENABLED` | `false` | Master toggle for the feature. |
+| Count | `RECONNECTION_COUNT` | `3` | Maximum number of reconnection attempts per session. |
+| Interval | `RECONNECTION_INTERVAL` | `10` | Seconds to wait between each attempt. |
+| Life | `RECONNECTION_LIFE` | `0` | Internal counter — remaining attempts. Set to Count at connection start; decremented on each retry. |
+
+<Note>
+  `RECONNECTION_LIFE` is an internal runtime value. It is initialized to `RECONNECTION_COUNT` when you start a connection and counts down as retries are consumed. You do not set this value directly; configure `RECONNECTION_COUNT` instead.
+</Note>
+
+## Configuring reconnection
+
+<Steps>
+  <Step title="Open the Setting tab">
+    Switch to the **Setting** tab in the app.
+  </Step>
+  <Step title="Enable Reconnection">
+    Find the **Enable Reconnection** toggle and turn it on.
+  </Step>
+  <Step title="Set the retry count">
+    Adjust **Count** to the number of reconnection attempts you want before the app gives up. The default is 3.
+  </Step>
+  <Step title="Set the retry interval">
+    Adjust **Interval** to the number of seconds the app should wait between each attempt. The default is 10 seconds. Increase this if your network typically takes longer to recover after a drop.
+  </Step>
+</Steps>
+
+## Reconnection lifecycle
+
+The diagram below describes the full lifecycle of a reconnection session:
+
+<AccordionGroup>
+  <Accordion title="Connection start">
+    When you start the VPN, `RECONNECTION_LIFE` is set to `RECONNECTION_COUNT`. The reconnection counter is always fully reset at the beginning of each intentional connection, not just after a successful reconnect.
+  </Accordion>
+  <Accordion title="Unexpected disconnection">
+    If the connection drops without your intervention, the app decrements `RECONNECTION_LIFE` and posts a notification. The notification is automatically dismissed once the next connection attempt starts.
+  </Accordion>
+  <Accordion title="Successful reconnection">
+    If the reconnection attempt succeeds, `RECONNECTION_LIFE` is reset to `RECONNECTION_COUNT` so the full number of retries is available again for any future drop during the same session.
+  </Accordion>
+  <Accordion title="Life reaches zero">
+    When `RECONNECTION_LIFE` reaches zero, the app stops retrying. No further reconnection notification is posted. You must reconnect manually by turning the switch back on.
+  </Accordion>
+  <Accordion title="Manual disconnect">
+    If you manually disconnect while a reconnection attempt is pending, the pending reconnection job is cancelled immediately. The VPN service stops cleanly.
+  </Accordion>
+</AccordionGroup>
+
+## Choosing count and interval values
+
+<Tip>
+  For mobile connections that frequently switch between Wi-Fi and cellular, a count of 5 and an interval of 15–30 seconds gives the device enough time to re-establish network connectivity before the next attempt.
+</Tip>
+
+<Tip>
+  For a stable home or office network where drops are rare but the server may restart occasionally, a lower count (2–3) with a longer interval (30–60 seconds) avoids hammering the server during a planned maintenance window.
+</Tip>
+
+<Warning>
+  Setting the interval too short (1–2 seconds) may cause the app to exhaust all retry attempts before the network has recovered, leaving you disconnected. Use at least 10 seconds for most scenarios.
+</Warning>
+
+## Notifications during reconnection
+
+During a reconnection sequence, a notification is posted for each attempt. The notification text follows the format:
+
+```
+Reconnection will be tried (LIFE = 2)
+```
+
+The notification is dismissed automatically when the next attempt begins or when the reconnection sequence ends. If logging is enabled, the same message is also written to the log file.
+
+## Related pages
+
+- [Enable logging and debug VPN connections](/guides/logging-debugging) — log reconnection attempts to a file for later review
+- [Save and load profiles](/guides/profiles) — reconnection settings are saved as part of a profile
+- [Notifications reference](/reference/notifications) — full list of notification types the app can post

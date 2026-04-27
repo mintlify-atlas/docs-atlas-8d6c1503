@@ -1,0 +1,192 @@
+---
+title: 'Troubleshoot common Open SSTP Client issues'
+description: 'Diagnose and resolve common connection failures in Open SSTP Client, from SSL certificate errors to authentication failures and routing problems.'
+---
+
+Most connection problems in Open SSTP Client produce a specific error notification in the format `{LOCATION}: {ERROR_CODE}`. Start by reading the notification to identify which protocol layer failed, then use the sections below to find the cause and fix. If no notification appears, check the [Android 13+ notification permission](/reference/notifications) first.
+
+<Note>
+  Because most bugs are environment-specific, the best way to diagnose an unusual problem is to reproduce it in your own environment. Enable logging and use the cipher suite selection option to capture and inspect packets with a tool like WireShark. See the [logging and debugging guide](/guides/logging-debugging) for details.
+</Note>
+
+## Connection issues
+
+<AccordionGroup>
+  <Accordion title="SSL: ERR_VERIFICATION_FAILED">
+    The TLS certificate presented by the server failed hostname verification. This happens when:
+    - The certificate's Common Name (CN) or Subject Alternative Names do not match the hostname in `HOME_HOSTNAME`.
+    - The certificate was issued by a CA that is not in the Android system trust store or the configured trusted cert directory.
+    - The server is using a self-signed certificate.
+
+    **Solutions:**
+    1. **Install the server certificate:** Tap the CERTIFICATE notification to save the certificate, then install it as a trusted CA on your device and re-enable **Verify Hostname**.
+    2. **Use a custom trusted cert directory:** Save the certificate to a local directory, point `SSL_CERT_DIR` at it, and enable `SSL_DO_SPECIFY_CERT`.
+    3. **Disable hostname verification:** Set `SSL_DO_VERIFY` to `false`. This is appropriate only for self-signed certificates on servers you trust. Do not disable verification for public servers.
+  </Accordion>
+
+  <Accordion title="CERT_PATH: ERR_VERIFICATION_FAILED">
+    The certificate chain from the server could not be validated. The server may be sending an incomplete chain, or an intermediate CA is missing from your trust store.
+
+    **Solutions:**
+    1. Tap the CERTIFICATE notification to download the server's certificate.
+    2. Install the certificate on your device or add it to a directory referenced by `SSL_CERT_DIR`.
+    3. If the server uses an intermediate CA, ensure the full chain is trusted.
+  </Accordion>
+
+  <Accordion title="CERT: ERR_PARSING_FAILED">
+    A certificate file in your trusted certificate directory (`SSL_CERT_DIR`) could not be parsed.
+
+    **Solutions:**
+    1. Verify that all files in the directory are valid PEM-encoded X.509 certificates.
+    2. Remove any non-certificate files (text files, READMEs, keys) from the directory.
+    3. Check that certificate files have not been corrupted or truncated.
+  </Accordion>
+
+  <Accordion title="PROXY: ERR_AUTHENTICATION_FAILED">
+    The HTTP proxy returned a 403 response, indicating that the proxy credentials are incorrect or missing.
+
+    **Solutions:**
+    1. Double-check `PROXY_USERNAME` and `PROXY_PASSWORD`.
+    2. Confirm the proxy hostname and port are correct.
+    3. Verify that the proxy requires authentication — some proxies accept unauthenticated connections from certain networks.
+  </Accordion>
+
+  <Accordion title="Cannot connect at all (no error notification)">
+    If the client fails to connect without producing any error notification, check the following:
+
+    - **Host field format:** `HOME_HOSTNAME` must contain only a hostname or IP address. Do not include `http://`, `https://`, or a port number (e.g., use `vpn.example.com`, not `https://vpn.example.com:443`).
+    - **Port number:** Confirm the server port in `SSL_PORT`. Most SSTP servers listen on `443`, but this can be changed.
+    - **Server DHCP:** The SSTP server must have DHCP enabled to assign IP addresses. Without DHCP, IPCP negotiation will stall and the connection will not complete.
+    - **Notification permission:** On Android 13+, the `POST_NOTIFICATIONS` permission must be granted. Without it, error notifications are silently dropped.
+  </Accordion>
+
+  <Accordion title="SSTP_REQUEST: ERR_TIMEOUT">
+    The server did not respond to the SSTP CALL_CONNECT_REQUEST within the timeout period.
+
+    **Solutions:**
+    1. Verify the server hostname and port are correct and reachable from your network.
+    2. If using a proxy, confirm the proxy can reach the server.
+    3. Check whether a firewall is blocking the connection on the configured port.
+  </Accordion>
+
+  <Accordion title="ROUTE: ERR_PARSING_FAILED">
+    One of the custom route entries in `ROUTE_CUSTOM_ROUTES` could not be parsed. This can happen if an entry is missing the prefix length (e.g. `10.0.0.0` instead of `10.0.0.0/8`), uses an invalid address format, or contains extra characters.
+
+    **Solutions:**
+    1. Open the **Custom Routes** field in the Setting tab and review each line.
+    2. Each entry must be in `address/prefix` format (e.g. `10.8.0.0/24` or `2001:db8::/32`).
+    3. Ensure there are no blank or malformed lines — one CIDR entry per line.
+  </Accordion>
+</AccordionGroup>
+
+## Authentication issues
+
+<AccordionGroup>
+  <Accordion title="PAP: ERR_TIMEOUT or CHAP: ERR_TIMEOUT">
+    The server did not complete the authentication exchange within the time limit set by `PPP_AUTH_TIMEOUT` (default: 3 seconds).
+
+    **Solutions:**
+    1. Increase `PPP_AUTH_TIMEOUT` in Settings → PPP to a higher value (e.g., 10–30 seconds) for slow or high-latency servers.
+    2. Verify the server is running and not overloaded.
+  </Accordion>
+
+  <Accordion title="PAP: ERR_AUTHENTICATION_FAILED">
+    The server rejected the username and password.
+
+    **Solutions:**
+    1. Verify `HOME_USERNAME` and `HOME_PASSWORD` are correct — check for extra spaces or incorrect case.
+    2. Confirm the account exists on the VPN server and has not been locked or disabled.
+    3. Try logging in with the same credentials from another client to rule out a server-side issue.
+  </Accordion>
+
+  <Accordion title="MSCHAPV2: ERR_AUTHENTICATION_FAILED or MSCHAPV2: ERR_VERIFICATION_FAILED">
+    MS-CHAPv2 authentication failed. Either the credentials were incorrect (`ERR_AUTHENTICATION_FAILED`) or the server's authenticator response did not verify (`ERR_VERIFICATION_FAILED`), which can indicate a server misconfiguration or a man-in-the-middle condition.
+
+    **Solutions:**
+    1. Verify credentials as above.
+    2. If `ERR_VERIFICATION_FAILED`, investigate whether the TLS layer is being intercepted (e.g., by a corporate proxy performing TLS inspection). Enabling `SSL_DO_VERIFY` with a trusted cert helps detect this.
+  </Accordion>
+
+  <Accordion title="Authentication keeps failing with no clear error">
+    **Solutions:**
+    1. Check `PPP_AUTH_PROTOCOLS`. If the server requires only PAP, disable MS-CHAPv2 and vice versa. Offering an unsupported protocol can cause the server to reject the connection.
+    2. Confirm the server does not require EAP. Open SSTP Client does not support EAP.
+    3. Enable logging and review the log file for more detail on what happened during negotiation.
+  </Accordion>
+</AccordionGroup>
+
+## Network issues
+
+<AccordionGroup>
+  <Accordion title="Connected but no internet access">
+    The VPN session is established (key icon shows in the status bar) but traffic does not flow.
+
+    **Solutions:**
+    1. Ensure `ROUTE_DO_ADD_DEFAULT_ROUTE` is enabled. Without a default route, traffic has no path through the tunnel.
+    2. If you have custom routes configured, verify the CIDR ranges are correct and cover the addresses you want to reach.
+    3. Check that `PPP_IPv4_ENABLED` is `true` if you need IPv4 connectivity.
+  </Accordion>
+
+  <Accordion title="DNS not resolving inside the tunnel">
+    Hostnames cannot be resolved while connected.
+
+    **Solutions:**
+    1. Verify `DNS_DO_REQUEST_ADDRESS` is `true` so the server can push DNS addresses.
+    2. If using a custom DNS server (`DNS_DO_USE_CUSTOM_SERVER`), confirm the address in `DNS_CUSTOM_ADDRESS` is correct and that its traffic is routed through the tunnel.
+    3. If the custom DNS server is an IPv4 address but `PPP_IPv4_ENABLED` is `false`, DNS queries cannot reach it. Enable IPv4 or use an IPv6 DNS address.
+  </Accordion>
+
+  <Accordion title="Cannot reach certain addresses inside the tunnel">
+    Some destinations are reachable through the tunnel but others are not.
+
+    **Solutions:**
+    1. Check whether `ROUTE_DO_ROUTE_PRIVATE_ADDRESSES` needs to be enabled if you are trying to reach RFC 1918 addresses on the remote network.
+    2. If using split tunneling, verify your custom routes in `ROUTE_CUSTOM_ROUTES` include the addresses you need.
+    3. Confirm the server is advertising or routing those prefixes.
+  </Accordion>
+
+  <Accordion title="IPv6 not working">
+    IPv6-only resources are unreachable.
+
+    **Solutions:**
+    1. Verify `PPP_IPv6_ENABLED` is `true`.
+    2. Be aware that the IPv6CP negotiation provides only a link-local address. Full IPv6 reachability is not guaranteed and depends on the server configuration. This is a known limitation noted in the README.
+  </Accordion>
+</AccordionGroup>
+
+## App-based routing issues
+
+<AccordionGroup>
+  <Accordion title="Apps in the allowed list are not using the tunnel">
+    **Solutions:**
+    1. Confirm `ROUTE_DO_ENABLE_APP_BASED_RULE` is `true`.
+    2. Ensure `ROUTE_DO_ADD_DEFAULT_ROUTE` is also enabled. Allowed apps still need a valid route through the tunnel to reach external addresses.
+    3. Verify the correct package names are in `ROUTE_SELECTED_APPS`. Package names are case-sensitive.
+    4. Check that `ROUTE_APP_LIST_TYPE` is set to `"Allowed Apps"` if you intend to route only those specific apps through the tunnel.
+  </Accordion>
+
+  <Accordion title="An app does not appear in the app picker">
+    **Solutions:**
+    1. Enable `ROUTE_DO_SHOW_BACKGROUND_APPS` to include background and system apps in the list.
+    2. Restart the app picker after enabling this setting.
+
+    See the [app-based routing guide](/guides/app-based-routing) for a full walkthrough.
+  </Accordion>
+</AccordionGroup>
+
+## General debugging steps
+
+<Steps>
+  <Step title="Check the error notification">
+    Read the full notification text. The format `{LOCATION}: {ERROR_CODE}` tells you exactly which layer failed and why. Refer to the [notifications reference](/reference/notifications) for a complete list of locations and error codes.
+  </Step>
+  <Step title="Enable logging">
+    Enable `LOG_DO_SAVE_LOG` and set a `LOG_DIR` before connecting. The log file captures the full connection lifecycle including error details with supplemental information that does not fit in the notification.
+  </Step>
+  <Step title="Use cipher suite selection for packet capture">
+    Enable `SSL_DO_SELECT_SUITES` and select `TLS_RSA_WITH_AES_128_CBC_SHA` or `TLS_RSA_WITH_AES_256_CBC_SHA`. These suites use RSA key exchange, which allows decryption in WireShark if you have the server's private key. This is the recommended approach for deep protocol debugging.
+  </Step>
+  <Step title="Reproduce in a controlled environment">
+    Most issues are environment-specific. If possible, reproduce the problem in a local environment with a SoftEther or VPN Azure server where you control both sides. See the [logging and debugging guide](/guides/logging-debugging) for more guidance.
+  </Step>
+</Steps>

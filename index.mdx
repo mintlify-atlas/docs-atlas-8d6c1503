@@ -1,133 +1,67 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
-icon: 'star'
+title: "Open SSTP Client: Free MS-SSTP VPN App for Android"
+description: "Open SSTP Client is a free, open-source MS-SSTP VPN client for Android. Connect securely to VPN Azure Cloud and SoftEther VPN Server."
 ---
 
-## Setting up
+Open SSTP Client brings the Microsoft Secure Socket Tunneling Protocol (MS-SSTP) to Android, letting you establish encrypted VPN tunnels to servers running VPN Azure Cloud or SoftEther VPN Server. Configure your connection once, save it as a profile, and connect from the home screen or the Quick Settings tile.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Installation" icon="android" href="/installation">
+    Download from Google Play or install an APK release to get started on your device.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Enter your server credentials and establish your first VPN connection in minutes.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Configuration" icon="sliders" href="/configuration/connection">
+    Explore all connection, SSL, PPP, routing, and proxy settings available in the app.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Guides" icon="book-open" href="/guides/profiles">
+    Learn how to manage profiles, route by app, import certificates, and enable logging.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## How it works
 
-Everything you need to create world-class documentation.
+Open SSTP Client implements the MS-SSTP protocol entirely on-device. When you connect, the app opens an SSL/TLS connection to your server, performs an HTTP upgrade handshake to establish the SSTP tunnel, negotiates PPP layer settings, and brings up a VPN interface that routes your traffic securely.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+<Steps>
+  <Step title="Install the app">
+    Install Open SSTP Client from [Google Play](https://play.google.com/store/apps/details?id=kittoku.osc) or download an APK from the [releases page](https://github.com/kittoku/Open-SSTP-Client/releases).
+  </Step>
+  <Step title="Enter your server details">
+    Open the app and enter your **Host**, **Username**, and **Password** on the Home tab.
+  </Step>
+  <Step title="Connect">
+    Toggle the switch to **On**. When a key icon appears in the status bar, the VPN is active.
+  </Step>
+  <Step title="Customize (optional)">
+    Adjust SSL settings, PPP protocols, routing rules, and more in the **Setting** tab. Save your configuration as a named profile for quick reuse.
+  </Step>
+</Steps>
 
-## Make your content agent ready
+## Key features
 
-Make your docs work for humans and AI agents alike.
+<CardGroup cols={2}>
+  <Card title="Strong encryption" icon="shield-halved">
+    TLS-encrypted tunnel with configurable cipher suites and SSL version selection for compatibility and security.
+  </Card>
+  <Card title="Flexible authentication" icon="key">
+    Supports PAP and MS-CHAPv2 authentication protocols to match your server's requirements.
+  </Card>
+  <Card title="App-based routing" icon="diagram-project">
+    Allow or block specific apps from using the VPN tunnel with per-app routing rules.
+  </Card>
+  <Card title="Profile management" icon="floppy-disk">
+    Save and load named connection profiles to switch between servers and configurations quickly.
+  </Card>
+  <Card title="Quick Settings tile" icon="toggle-on">
+    Toggle the VPN directly from the Android Quick Settings panel without opening the app.
+  </Card>
+  <Card title="Auto-reconnection" icon="rotate">
+    Configure automatic reconnection with custom retry counts, intervals, and lifetime limits.
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card
-    title="Prompt component"
-    icon="robot"
-    href="/agent-ready/prompt"
-  >
-    Embed shareable AI prompts readers can copy or open in Cursor.
-  </Card>
-  <Card
-    title="Visibility"
-    icon="eye"
-    href="/agent-ready/visibility"
-  >
-    Show different content to humans and agents reading your docs.
-  </Card>
-  <Card
-    title="Contextual menu"
-    icon="bolt"
-    href="/agent-ready/contextual"
-  >
-    Give readers one-click access to Claude, ChatGPT, Cursor, and more.
-  </Card>
-  <Card
-    title="AI coding tools"
-    icon="wand-magic-sparkles"
-    href="/ai-tools/claude-code"
-  >
-    Set up Claude Code, Cursor, or Windsurf with Mintlify's skill.
-  </Card>
-</Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Note>
+Open SSTP Client has been tested primarily with VPN Azure Cloud and SoftEther VPN Server. Behavior with other SSTP server implementations may vary. Use at your own risk.
+</Note>

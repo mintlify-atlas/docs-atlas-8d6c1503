@@ -1,0 +1,75 @@
+---
+title: 'Contributing to Open SSTP Client'
+description: 'Learn how to contribute to Open SSTP Client: licensing terms, code style expectations, contributor recognition policy, and how to report issues.'
+---
+
+Open SSTP Client is an open-source project licensed under the MIT License, and contributions are welcome. Before submitting a pull request or opening an issue, read the terms below so you know what to expect. The project maintainer reviews contributions for both correctness and coding style, and reserves the right to modify or decline changes to maintain consistency across the codebase.
+
+## Contribution terms
+
+All contributors must accept the following conditions before their work can be merged. These are documented in the project's [CONTRIBUTING.md](https://github.com/kittoku/Open-SSTP-Client/blob/main/CONTRIBUTING.md).
+
+<AccordionGroup>
+  <Accordion title="Licensing">
+    By contributing to Open SSTP Client, you agree that your contribution is licensed under the same MIT License as the rest of the project. This keeps the licensing simple and consistent.
+
+    If you prefer to retain separate rights over your contribution, you may declare dual licensing — that is, publish your work under both MIT and another license of your choosing. This must be explicitly stated in your pull request.
+  </Accordion>
+
+  <Accordion title="Code style and maintainability">
+    The maintainer may modify your contribution for coding style or maintainability before merging, or may decline it if it does not meet the project's standards. This is not a reflection of the quality of your idea — it is a practical measure to keep a single-maintainer project sustainable.
+
+    If you are unsure whether a change will be accepted, consider opening an issue to discuss it before investing significant effort.
+  </Accordion>
+
+  <Accordion title="Contributor recognition">
+    Accepted contributors are listed by name in `CONTRIBUTORS.md`. If you would prefer not to be listed, say so explicitly in your pull request. Opting out will be respected without question.
+  </Accordion>
+</AccordionGroup>
+
+## Current contributors
+
+The following individuals have contributed to Open SSTP Client and are listed in [CONTRIBUTORS.md](https://github.com/kittoku/Open-SSTP-Client/blob/main/CONTRIBUTORS.md):
+
+- [Nicki de Wet](https://github.com/nickidw)
+- [nynauy](https://github.com/nynauy)
+
+## How to contribute code
+
+<Steps>
+  <Step title="Fork the repository">
+    Go to [https://github.com/kittoku/Open-SSTP-Client](https://github.com/kittoku/Open-SSTP-Client) and click **Fork** to create your own copy of the repository.
+  </Step>
+  <Step title="Make your changes">
+    Clone your fork locally, create a branch for your change, and implement the fix or feature. Keep changes focused — one logical change per pull request makes review easier.
+  </Step>
+  <Step title="Test in your own environment">
+    Networking bugs are almost always environment-specific. The maintainer cannot reproduce issues outside their own setup, so testing your change against a live SSTP server (SoftEther or VPN Azure) before submitting is strongly encouraged.
+  </Step>
+  <Step title="Submit a pull request">
+    Push your branch to your fork and open a pull request against the main repository. Describe what the change does, why it is needed, and how you tested it. If you are dual-licensing or opting out of contributor recognition, state that in the PR description.
+  </Step>
+</Steps>
+
+## Reporting issues
+
+Open issues at [https://github.com/kittoku/Open-SSTP-Client/issues](https://github.com/kittoku/Open-SSTP-Client/issues).
+
+<Info>
+  Because most problems are specific to a particular server environment, the maintainer may not be able to reproduce or fix an issue without a way to replicate the exact setup. Including a log file (enable `LOG_DO_SAVE_LOG` before connecting) and the full error notification text significantly increases the chance of a useful response.
+</Info>
+
+When reporting an issue, include:
+- The Android version and device model.
+- The VPN server software and version (SoftEther, VPN Azure, Windows Server, etc.).
+- The full error notification text in `{LOCATION}: {ERROR_CODE}` format.
+- A log file if logging was enabled.
+- Any relevant settings (TLS version, auth protocols, proxy configuration).
+
+## Forking
+
+If you cannot accept the contribution terms or want to take the project in a different direction, forking is explicitly welcomed. The MIT License permits you to fork, modify, and redistribute the code freely, provided you include the original license notice. The README states: "Feel free to fork this project and make better SSTP client!"
+
+## Debugging note
+
+The project README is explicit that most bugs cannot be debugged by the maintainer outside their own environment. If you encounter a reproducible issue, the most productive path is to debug it yourself using the tools described in the [logging and debugging guide](/guides/logging-debugging) — particularly the cipher suite selection feature for WireShark packet capture — and then submit a pull request with the fix.

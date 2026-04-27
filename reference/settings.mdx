@@ -1,0 +1,134 @@
+---
+title: 'Complete settings reference for Open SSTP Client'
+description: 'A full reference of every setting available in Open SSTP Client, organized by category, with default values and allowed inputs for each option.'
+---
+
+Every configurable behavior in Open SSTP Client maps to one of the preference keys defined in `OscPrefKey`. This page lists all available settings grouped by category, showing the key name, data type, default value, and a description of what the setting controls. Use this as a companion to the configuration guides when you need exact key names or valid input ranges.
+
+<AccordionGroup>
+  <Accordion title="Connection (Home tab)">
+    These four settings appear on the Home tab and are the minimum required to establish a VPN connection.
+
+    | Key | Type | Default | Description |
+    |-----|------|---------|-------------|
+    | `HOME_HOSTNAME` | `String` | `""` | Server hostname or IP address. Do not include a port number or URL scheme (e.g., `vpn.example.com`, not `https://vpn.example.com:443`). |
+    | `HOME_USERNAME` | `String` | `""` | VPN account username sent during PPP authentication. |
+    | `HOME_PASSWORD` | `String` | `""` | VPN account password sent during PPP authentication. |
+    | `SSL_PORT` | `Int` | `443` | TCP port on which the SSTP server listens. Change this only if your server is configured on a non-standard port. |
+
+    <Note>
+      The `HOME_HOSTNAME` field accepts IP addresses, but the value must never include a port number or a URL scheme. Configure the port separately using `SSL_PORT`.
+    </Note>
+  </Accordion>
+
+  <Accordion title="SSL / Security">
+    These settings control the TLS layer that wraps the SSTP tunnel. Incorrect TLS configuration is the most common cause of connection failures.
+
+    | Key | Type | Default | Description |
+    |-----|------|---------|-------------|
+    | `SSL_VERSION` | `String` | `"DEFAULT"` | TLS protocol version. Accepted values: `DEFAULT` (system default), `TLSv1.2`, `TLSv1.3`. |
+    | `SSL_DO_VERIFY` | `Boolean` | `true` | When `true`, the client verifies that the server's certificate hostname matches `HOME_HOSTNAME`. Disable only for self-signed certificates that have been manually trusted. |
+    | `SSL_DO_SPECIFY_CERT` | `Boolean` | `false` | When `true`, the client uses **only** the certificates found in `SSL_CERT_DIR` instead of the system certificate store. |
+    | `SSL_CERT_DIR` | `URI` | `null` | URI pointing to a directory of trusted X.509 certificates. Only used when `SSL_DO_SPECIFY_CERT` is `true`. |
+    | `SSL_DO_SELECT_SUITES` | `Boolean` | `false` | When `true`, restricts TLS negotiation to the cipher suites listed in `SSL_SUITES`. Useful for packet capture with WireShark. |
+    | `SSL_SUITES` | `Set<String>` | `{}` | The set of cipher suites to allow when `SSL_DO_SELECT_SUITES` is `true`. |
+    | `SSL_DO_USE_CUSTOM_SNI` | `Boolean` | `false` | When `true`, overrides the SNI hostname sent during TLS handshake. Requires Android N (API 24) or higher. |
+    | `SSL_CUSTOM_SNI` | `String` | `""` | The custom SNI hostname to use when `SSL_DO_USE_CUSTOM_SNI` is `true`. |
+
+    <Warning>
+      Setting `SSL_DO_SPECIFY_CERT` to `true` completely replaces the system trust store. Any server certificate not present in `SSL_CERT_DIR` will be rejected, including certificates signed by public CAs.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Proxy">
+    Configure an HTTP proxy if your network requires traffic to pass through one before reaching the SSTP server.
+
+    | Key | Type | Default | Description |
+    |-----|------|---------|-------------|
+    | `PROXY_DO_USE_PROXY` | `Boolean` | `false` | When `true`, routes the SSTP connection through the HTTP proxy defined by the other `PROXY_*` settings. |
+    | `PROXY_HOSTNAME` | `String` | `""` | Proxy server hostname or IP address. |
+    | `PROXY_PORT` | `Int` | `8080` | Proxy server port number. |
+    | `PROXY_USERNAME` | `String` | `""` | Username for proxy authentication. Leave empty if the proxy requires no authentication. |
+    | `PROXY_PASSWORD` | `String` | `""` | Password for proxy authentication. Leave empty if the proxy requires no authentication. |
+  </Accordion>
+
+  <Accordion title="PPP">
+    PPP settings control the Point-to-Point Protocol layer that carries IP traffic inside the SSTP tunnel.
+
+    | Key | Type | Default | Range | Description |
+    |-----|------|---------|-------|-------------|
+    | `PPP_MRU` | `Int` | `1500` | 68–2000 | Maximum Receive Unit in bytes. Controls the largest PPP frame the client will accept from the server. |
+    | `PPP_MTU` | `Int` | `1500` | 68–2000 | Maximum Transmission Unit in bytes. Controls the largest PPP frame the client will send to the server. |
+    | `PPP_AUTH_PROTOCOLS` | `Set<String>` | `{"PAP", "MSCHAPv2"}` | — | The set of authentication protocols the client offers during LCP negotiation. The server selects one from this set. Accepted values: `PAP`, `MSCHAPv2`. |
+    | `PPP_AUTH_TIMEOUT` | `Int` | `3` | seconds | How long the client waits for the server to respond during the authentication phase before reporting `ERR_TIMEOUT`. |
+    | `PPP_IPv4_ENABLED` | `Boolean` | `true` | — | When `true`, the client attempts to negotiate an IPv4 address via IPCP. |
+    | `PPP_DO_REQUEST_STATIC_IPv4_ADDRESS` | `Boolean` | `false` | — | When `true`, the client requests the specific address in `PPP_STATIC_IPv4_ADDRESS` during IPCP negotiation instead of asking the server to assign one dynamically. |
+    | `PPP_STATIC_IPv4_ADDRESS` | `String` | `""` | — | The IPv4 address to request when `PPP_DO_REQUEST_STATIC_IPv4_ADDRESS` is `true`. |
+    | `PPP_IPv6_ENABLED` | `Boolean` | `false` | — | When `true`, the client attempts to negotiate an IPv6 address via IPv6CP. Note: this provides only a link-local address and does not guarantee full IPv6 connectivity. |
+
+    <Note>
+      The server must have DHCP enabled. If the server does not assign addresses, IPCP negotiation will fail regardless of static address settings.
+    </Note>
+  </Accordion>
+
+  <Accordion title="DNS">
+    Control how DNS server addresses are obtained and which server is used to resolve names inside the tunnel.
+
+    | Key | Type | Default | Description |
+    |-----|------|---------|-------------|
+    | `DNS_DO_REQUEST_ADDRESS` | `Boolean` | `true` | When `true`, the client requests DNS server address(es) from the server during IPCP negotiation. |
+    | `DNS_DO_USE_CUSTOM_SERVER` | `Boolean` | `false` | When `true`, overrides the server-provided DNS address with the value in `DNS_CUSTOM_ADDRESS`. |
+    | `DNS_CUSTOM_ADDRESS` | `String` | `""` | The IP address of a custom DNS server to use when `DNS_DO_USE_CUSTOM_SERVER` is `true`. Traffic to this address is automatically routed through the VPN tunnel. |
+
+    <Warning>
+      If you specify a custom IPv4 DNS address but disable IPv4 (`PPP_IPv4_ENABLED = false`), DNS queries to that server cannot be routed and domain resolution will fail.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Routing">
+    Routing settings determine which traffic is sent through the VPN tunnel and which bypasses it.
+
+    | Key | Type | Default | Description |
+    |-----|------|---------|-------------|
+    | `ROUTE_DO_ADD_DEFAULT_ROUTE` | `Boolean` | `true` | When `true`, adds a `0.0.0.0/0` default route so all traffic goes through the tunnel. Disable to use split tunneling. |
+    | `ROUTE_DO_ROUTE_PRIVATE_ADDRESSES` | `Boolean` | `false` | When `true`, routes RFC 1918 private address ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) through the tunnel. |
+    | `ROUTE_DO_ADD_CUSTOM_ROUTES` | `Boolean` | `false` | When `true`, adds the CIDR ranges listed in `ROUTE_CUSTOM_ROUTES` to the routing table. |
+    | `ROUTE_CUSTOM_ROUTES` | `String` | `""` | Newline-separated list of CIDR prefixes (one per line, e.g. `10.0.0.0/8`) to route through the tunnel when `ROUTE_DO_ADD_CUSTOM_ROUTES` is `true`. Invalid entries cause a `ROUTE: ERR_PARSING_FAILED` error. |
+    | `ROUTE_DO_ENABLE_APP_BASED_RULE` | `Boolean` | `false` | When `true`, enables per-app routing. Traffic is filtered based on the app list configured with `ROUTE_APP_LIST_TYPE` and `ROUTE_SELECTED_APPS`. |
+    | `ROUTE_APP_LIST_TYPE` | `String` | `"Allowed Apps"` | Determines how `ROUTE_SELECTED_APPS` is interpreted. Accepted values: `"Allowed Apps"` (only listed apps use the tunnel), `"Disallowed Apps"` (listed apps bypass the tunnel). |
+    | `ROUTE_DO_SHOW_BACKGROUND_APPS` | `Boolean` | `false` | When `true`, background and system apps appear in the app picker when configuring per-app routing. |
+    | `ROUTE_SELECTED_APPS` | `Set<String>` | `{}` | Package names of the apps subject to the per-app routing rule. |
+
+    <Tip>
+      When using per-app routing in Allowed Apps mode, enable `ROUTE_DO_ADD_DEFAULT_ROUTE` as well. Without a default route, allowed apps have no valid path through the tunnel.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Reconnection">
+    These settings control whether and how the client automatically reconnects after an unexpected disconnection.
+
+    | Key | Type | Default | Description |
+    |-----|------|---------|-------------|
+    | `RECONNECTION_ENABLED` | `Boolean` | `false` | When `true`, the client will attempt to reconnect automatically if the connection drops unexpectedly. |
+    | `RECONNECTION_COUNT` | `Int` | `3` | Maximum number of reconnection attempts per session. |
+    | `RECONNECTION_INTERVAL` | `Int` | `10` | Seconds to wait between reconnection attempts. |
+    | `RECONNECTION_LIFE` | `Int` | `0` | Runtime counter tracking how many reconnection attempts remain. This value is reset at the start of each connection and decremented with each attempt. It is not a user-configurable setting. |
+
+    <Info>
+      Auto-reconnect only triggers on unexpected disconnections. Manually tapping the DISCONNECT notification or turning off the switch always terminates the session without reconnecting.
+    </Info>
+  </Accordion>
+
+  <Accordion title="Logging">
+    Configure whether connection logs are written to disk and where they are stored.
+
+    | Key | Type | Default | Description |
+    |-----|------|---------|-------------|
+    | `LOG_DO_SAVE_LOG` | `Boolean` | `false` | When `true`, the client writes a timestamped log file to the directory specified by `LOG_DIR` at the start of each connection. |
+    | `LOG_DIR` | `URI` | `null` | URI pointing to the directory where log files are saved. Log files are named `log_osc_<yyyyMMddHHmmss>.txt`. |
+
+    <Note>
+      You must select a `LOG_DIR` before enabling `LOG_DO_SAVE_LOG`. If the directory URI is null or inaccessible, the service will post an error notification and skip log creation.
+    </Note>
+  </Accordion>
+</AccordionGroup>
